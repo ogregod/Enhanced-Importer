@@ -1,19 +1,27 @@
 // D&D Beyond Enhanced Importer
-// API Interaction
+// API Interaction with Proxy Support
 
 /**
- * Class for handling D&D Beyond API interactions
+ * Class for handling D&D Beyond API interactions via proxy server
  */
 export class DnDBeyondEnhancedAPI {
   constructor() {
-    this.baseUrl = 'https://character-service.dndbeyond.com/character/v5';
-    this.contentUrl = 'https://www.dndbeyond.com/api';
+    this.proxyAvailable = null; // null = not checked, true/false = result
     this.sourceCache = null;
     this.itemCache = null;
     this.spellCache = null;
-    this.useFallbackDatabase = true; // Use the local database as fallback
   }
-  
+
+  /**
+   * Get the proxy URL from settings
+   * @returns {string} The proxy URL
+   * @private
+   */
+  _getProxyUrl() {
+    const url = game.settings.get('dnd-beyond-enhanced-importer', 'proxyUrl');
+    return url || 'http://localhost:3001'; // Fallback to localhost for development
+  }
+
   /**
    * Get the Cobalt cookie from settings
    * @returns {string} The Cobalt cookie
@@ -22,196 +30,189 @@ export class DnDBeyondEnhancedAPI {
   _getCobaltCookie() {
     return game.settings.get('dnd-beyond-enhanced-importer', 'cobaltCookie');
   }
-  
+
   /**
-   * Validate if a Cobalt cookie is valid and has access to D&D Beyond
+   * Check if the proxy server is running and available
+   * @returns {Promise<boolean>} Whether the proxy is available
+   */
+  async checkProxyAvailability() {
+    // Return cached result if already checked
+    if (this.proxyAvailable !== null) {
+      return this.proxyAvailable;
+    }
+
+    try {
+      const response = await fetch(`${this._getProxyUrl()}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(2000) // 2 second timeout
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        this.proxyAvailable = data.status === 'ok';
+        console.log('D&D Beyond Enhanced Importer | Proxy server is available');
+        return this.proxyAvailable;
+      }
+    } catch (error) {
+      this.proxyAvailable = false;
+      console.warn('D&D Beyond Enhanced Importer | Proxy server not available, using local database');
+    }
+
+    return this.proxyAvailable;
+  }
+
+  /**
+   * Validate if a Cobalt cookie is valid
    * @param {string} cookie - The Cobalt cookie to validate
    * @returns {Promise<boolean>} Whether the cookie is valid
    */
   async validateCookie(cookie) {
+    if (!cookie || cookie.trim() === '') {
+      return false;
+    }
+
+    // Check if proxy is available
+    const proxyAvailable = await this.checkProxyAvailability();
+
+    if (!proxyAvailable) {
+      // Can't validate without proxy, assume valid if non-empty
+      console.warn('D&D Beyond Enhanced Importer | Cannot validate cookie without proxy server');
+      return true;
+    }
+
     try {
-      // In a real-world scenario, we would test the cookie by accessing D&D Beyond
-      // Since direct browser requests will be blocked by CORS, we'll simulate validation
-      // In production, you would need a server-side proxy to make this request
-      
-      if (this.useFallbackDatabase) {
-        // Simulate validation by checking if the cookie is not empty
-        return cookie && cookie.trim() !== '';
+      const response = await fetch(`${this._getProxyUrl()}/api/validate-cookie`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ cobaltCookie: cookie })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.valid;
       }
-      
-      // Try the cookie with a test request
-      try {
-        const response = await this._makeRequest('/user-entity', cookie);
-        return response && response.ok;
-      } catch (error) {
-        console.warn('D&D Beyond Enhanced Importer | API request failed, likely due to CORS restrictions');
-        return false;
-      }
+
+      return false;
     } catch (error) {
       console.error('D&D Beyond Enhanced Importer | Error validating cookie:', error);
       return false;
     }
   }
-  
+
   /**
-   * Make an authenticated request to the D&D Beyond API
-   * @param {string} endpoint - The API endpoint to call
-   * @param {string} [cookie=null] - Optional cookie to use (otherwise uses stored cookie)
-   * @returns {Promise<Response>} The API response
+   * Make a request to the proxy server for D&D Beyond character service
+   * @param {string} endpoint - The API endpoint
+   * @param {string} [cookie=null] - Optional cookie to use
+   * @returns {Promise<object>} The API response data
    * @private
    */
-  async _makeRequest(endpoint, cookie = null) {
-    // Browser CORS will always block these requests, so use fallback immediately
-    const corsError = new Error('CORS restriction detected. Using fallback database.');
-    corsError.name = 'CORSError';
-    throw corsError;
+  async _makeProxyRequest(endpoint, cookie = null) {
+    const cobaltCookie = cookie || this._getCobaltCookie();
+
+    if (!cobaltCookie) {
+      throw new Error('No Cobalt cookie available');
+    }
+
+    const response = await fetch(`${this._getProxyUrl()}/api/character${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ cobaltCookie })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || `Proxy request failed: ${response.status}`);
+    }
+
+    return await response.json();
   }
-  
+
   /**
-   * Make a content request to the D&D Beyond content API
+   * Make a content request via proxy
    * @param {string} endpoint - The content API endpoint
    * @param {string} [cookie=null] - Optional cookie to use
-   * @returns {Promise<object>} The parsed response data
+   * @returns {Promise<object>} The API response data
    * @private
    */
-  async _makeContentRequest(endpoint, cookie = null) {
-    // Browser CORS will always block these requests, so use fallback immediately
-    const corsError = new Error('CORS restriction detected. Using fallback database.');
-    corsError.name = 'CORSError';
-    throw corsError;
+  async _makeContentProxyRequest(endpoint, cookie = null) {
+    const cobaltCookie = cookie || this._getCobaltCookie();
+
+    const response = await fetch(`${this._getProxyUrl()}/api/content${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ cobaltCookie })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || `Proxy request failed: ${response.status}`);
+    }
+
+    return await response.json();
   }
-  
+
   /**
    * Get user information including unlocked sources
-   * @returns {Promise<object>} User information including unlocked sources
+   * @returns {Promise<object>} User information
    */
   async getUserInfo() {
+    const proxyAvailable = await this.checkProxyAvailability();
+
+    if (!proxyAvailable) {
+      throw new Error('Proxy server not available');
+    }
+
     try {
-      const response = await this._makeRequest('/user-entity');
-      
-      if (!response.ok) {
-        throw new Error(`Failed to get user info: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      return data;
+      return await this._makeProxyRequest('/user-entity');
     } catch (error) {
-      // Handle CORS error specifically
-      if (error.name === 'CORSError') {
-        console.warn('D&D Beyond Enhanced Importer | Using fallback sources due to CORS restrictions');
-        // Return a simulated user info object with entitlements for all sources
-        return this._getFallbackUserInfo();
-      }
-      
+      console.error('D&D Beyond Enhanced Importer | Error getting user info:', error);
       throw error;
     }
   }
-  
+
   /**
-   * Get a fallback user info object
-   * @returns {object} A simulated user info object
-   * @private
-   */
-  async _getFallbackUserInfo() {
-    // Load the sources from the local database
-    const sourcesResponse = await fetch('modules/dnd-beyond-enhanced-importer/database/sources.json');
-    const sources = await sourcesResponse.json();
-    
-    // Create entitlements for all sources
-    const entitlements = sources.map(source => ({
-      entity: 'source',
-      entityId: source.id,
-      // Simulate that the user owns all non-free sources
-      // In a real implementation, this should come from the user's account
-      unlocked: true
-    }));
-    
-    return {
-      entities: {
-        entitlements: entitlements
-      }
-    };
-  }
-  
-  /**
-   * Get all available sources/books the user has access to
-   * @returns {Promise<Array>} Array of source books
+   * Get sources (sourcebooks) from D&D Beyond
+   * @returns {Promise<Array>} Array of sources
    */
   async getSources() {
     // Return cached sources if available
     if (this.sourceCache) {
       return this.sourceCache;
     }
-    
+
+    const proxyAvailable = await this.checkProxyAvailability();
+
+    if (!proxyAvailable) {
+      // Fall back to local database
+      console.log('D&D Beyond Enhanced Importer | Loading sources from local database');
+      const response = await fetch('modules/dnd-beyond-enhanced-importer/database/sources.json');
+      this.sourceCache = await response.json();
+      return this.sourceCache;
+    }
+
     try {
-      // Try to get user info which contains unlocked entitlements
-      let userInfo;
-      try {
-        userInfo = await this.getUserInfo();
-      } catch (error) {
-        if (error.name === 'CORSError') {
-          userInfo = await this._getFallbackUserInfo();
-        } else {
-          throw error;
-        }
-      }
-      
-      // Try to get all available sources from the content API
-      let sourcesData;
-      try {
-        const sourcesResponse = await this._makeContentRequest('/sources');
-        sourcesData = sourcesResponse.data;
-      } catch (error) {
-        if (error.name === 'CORSError') {
-          // Load sources from the local database
-          const sourcesResponse = await fetch('modules/dnd-beyond-enhanced-importer/database/sources.json');
-          sourcesData = await sourcesResponse.json();
-        } else {
-          throw error;
-        }
-      }
-      
-      if (!sourcesData) {
-        throw new Error('Failed to get sources from D&D Beyond');
-      }
-      
-      // Filter sources based on user entitlements
-      const entitledSources = sourcesData.filter(source => {
-        // Check if the source is free
-        if (source.isFree) return true;
-        
-        // If we're using the fallback database, return all sources
-        if (this.useFallbackDatabase) return true;
-        
-        // Check if the user has unlocked this source
-        const entitlementId = source.sourceId || source.id;
-        return userInfo.entities.entitlements.some(e => 
-          e.entityId === entitlementId && e.entity === 'source'
-        );
-      });
-      
-      // Cache the results
-      this.sourceCache = entitledSources;
-      
-      return entitledSources;
+      // Try to get sources from D&D Beyond via proxy
+      const data = await this._makeContentProxyRequest('/sources');
+      this.sourceCache = data;
+      return data;
     } catch (error) {
-      console.error('D&D Beyond Enhanced Importer | Error getting sources:', error);
-      
-      // If all else fails, load sources from the local database
-      try {
-        const sourcesResponse = await fetch('modules/dnd-beyond-enhanced-importer/database/sources.json');
-        const sources = await sourcesResponse.json();
-        this.sourceCache = sources;
-        return sources;
-      } catch (fallbackError) {
-        console.error('D&D Beyond Enhanced Importer | Error getting fallback sources:', fallbackError);
-        throw error; // Throw the original error
-      }
+      console.warn('D&D Beyond Enhanced Importer | API failed, using local database:', error.message);
+
+      // Fall back to local database
+      const response = await fetch('modules/dnd-beyond-enhanced-importer/database/sources.json');
+      this.sourceCache = await response.json();
+      return this.sourceCache;
     }
   }
-  
+
   /**
-   * Get all items from available sources
+   * Get items from D&D Beyond
    * @returns {Promise<Array>} Array of items
    */
   async getItems() {
@@ -219,58 +220,42 @@ export class DnDBeyondEnhancedAPI {
     if (this.itemCache) {
       return this.itemCache;
     }
-    
+
+    const proxyAvailable = await this.checkProxyAvailability();
+
+    if (!proxyAvailable) {
+      // Fall back to local database
+      console.log('D&D Beyond Enhanced Importer | Loading items from local database');
+      const response = await fetch('modules/dnd-beyond-enhanced-importer/database/items.json');
+      this.itemCache = await response.json();
+      return this.itemCache;
+    }
+
     try {
-      // Get the list of sources the user has access to
-      const sources = await this.getSources();
-      const sourceIds = sources.map(s => s.id);
-      
-      let itemsData;
-      try {
-        // Try to get items from the content API
-        const itemsResponse = await this._makeContentRequest('/items');
-        itemsData = itemsResponse.data;
-      } catch (error) {
-        if (error.name === 'CORSError') {
-          // Load items from the local database
-          const itemsResponse = await fetch('modules/dnd-beyond-enhanced-importer/database/items.json');
-          itemsData = await itemsResponse.json();
-        } else {
-          throw error;
-        }
-      }
-      
-      if (!itemsData) {
-        throw new Error('Failed to get items from D&D Beyond');
-      }
-      
-      // Filter items to only those from sources the user has access to
-      const availableItems = itemsData.filter(item => {
-        return sourceIds.includes(item.sourceId);
-      });
-      
-      // Cache the results
-      this.itemCache = availableItems;
-      
-      return availableItems;
+      // Try to get items from D&D Beyond via proxy
+      const userInfo = await this.getUserInfo();
+      const items = await this._makeContentProxyRequest('/items');
+
+      // Filter items based on user's owned sources
+      const ownedSourceIds = userInfo.sources || [];
+      const filteredItems = items.filter(item =>
+        ownedSourceIds.includes(item.sourceId) || item.isHomebrew
+      );
+
+      this.itemCache = filteredItems;
+      return filteredItems;
     } catch (error) {
-      console.error('D&D Beyond Enhanced Importer | Error getting items:', error);
-      
-      // If all else fails, load items from the local database
-      try {
-        const itemsResponse = await fetch('modules/dnd-beyond-enhanced-importer/database/items.json');
-        const items = await itemsResponse.json();
-        this.itemCache = items;
-        return items;
-      } catch (fallbackError) {
-        console.error('D&D Beyond Enhanced Importer | Error getting fallback items:', fallbackError);
-        throw error; // Throw the original error
-      }
+      console.warn('D&D Beyond Enhanced Importer | API failed, using local database:', error.message);
+
+      // Fall back to local database
+      const response = await fetch('modules/dnd-beyond-enhanced-importer/database/items.json');
+      this.itemCache = await response.json();
+      return this.itemCache;
     }
   }
-  
+
   /**
-   * Get all spells from available sources
+   * Get spells from D&D Beyond
    * @returns {Promise<Array>} Array of spells
    */
   async getSpells() {
@@ -278,130 +263,77 @@ export class DnDBeyondEnhancedAPI {
     if (this.spellCache) {
       return this.spellCache;
     }
-    
+
+    const proxyAvailable = await this.checkProxyAvailability();
+
+    if (!proxyAvailable) {
+      // Fall back to local database
+      console.log('D&D Beyond Enhanced Importer | Loading spells from local database');
+      const response = await fetch('modules/dnd-beyond-enhanced-importer/database/spells.json');
+      this.spellCache = await response.json();
+      return this.spellCache;
+    }
+
     try {
-      // Get the list of sources the user has access to
-      const sources = await this.getSources();
-      const sourceIds = sources.map(s => s.id);
-      
-      let spellsData;
-      try {
-        // Try to get spells from the content API
-        const spellsResponse = await this._makeContentRequest('/spells');
-        spellsData = spellsResponse.data;
-      } catch (error) {
-        if (error.name === 'CORSError') {
-          // Load spells from the local database
-          const spellsResponse = await fetch('modules/dnd-beyond-enhanced-importer/database/spells.json');
-          spellsData = await spellsResponse.json();
-        } else {
-          throw error;
-        }
-      }
-      
-      if (!spellsData) {
-        throw new Error('Failed to get spells from D&D Beyond');
-      }
-      
-      // Filter spells to only those from sources the user has access to
-      const availableSpells = spellsData.filter(spell => {
-        return sourceIds.includes(spell.sourceId);
-      });
-      
-      // Cache the results
-      this.spellCache = availableSpells;
-      
-      return availableSpells;
+      // Try to get spells from D&D Beyond via proxy
+      const userInfo = await this.getUserInfo();
+      const spells = await this._makeContentProxyRequest('/spells');
+
+      // Filter spells based on user's owned sources
+      const ownedSourceIds = userInfo.sources || [];
+      const filteredSpells = spells.filter(spell =>
+        ownedSourceIds.includes(spell.sourceId) || spell.isHomebrew
+      );
+
+      this.spellCache = filteredSpells;
+      return filteredSpells;
     } catch (error) {
-      console.error('D&D Beyond Enhanced Importer | Error getting spells:', error);
-      
-      // If all else fails, load spells from the local database
-      try {
-        const spellsResponse = await fetch('modules/dnd-beyond-enhanced-importer/database/spells.json');
-        const spells = await spellsResponse.json();
-        this.spellCache = spells;
-        return spells;
-      } catch (fallbackError) {
-        console.error('D&D Beyond Enhanced Importer | Error getting fallback spells:', fallbackError);
-        throw error; // Throw the original error
-      }
+      console.warn('D&D Beyond Enhanced Importer | API failed, using local database:', error.message);
+
+      // Fall back to local database
+      const response = await fetch('modules/dnd-beyond-enhanced-importer/database/spells.json');
+      this.spellCache = await response.json();
+      return this.spellCache;
     }
   }
-  
+
   /**
-   * Get detailed information about a specific item
-   * @param {number} itemId - The D&D Beyond item ID
-   * @returns {Promise<object>} Detailed item information
+   * Get details for a specific item
+   * @param {number} itemId - The item ID
+   * @returns {Promise<object>} Item details
    */
   async getItemDetails(itemId) {
-    try {
-      try {
-        // Try to get item details from the content API
-        const itemResponse = await this._makeContentRequest(`/item/${itemId}`);
-        return itemResponse.data;
-      } catch (error) {
-        if (error.name === 'CORSError') {
-          // Fallback to using the database
-          // In a real implementation, you would load the item details from the database
-          // For now, we'll just return a simulated item with the ID
-          const items = await this.getItems();
-          const item = items.find(i => i.id === itemId);
-          
-          if (!item) {
-            throw new Error(`Failed to get item details for item ID ${itemId}`);
-          }
-          
-          return item;
-        } else {
-          throw error;
-        }
-      }
-    } catch (error) {
-      console.error(`D&D Beyond Enhanced Importer | Error getting item details for ${itemId}:`, error);
-      throw error;
+    const proxyAvailable = await this.checkProxyAvailability();
+
+    if (!proxyAvailable) {
+      throw new Error('Proxy server required for item details');
     }
+
+    return await this._makeContentProxyRequest(`/items/${itemId}`);
   }
-  
+
   /**
-   * Get detailed information about a specific spell
-   * @param {number} spellId - The D&D Beyond spell ID
-   * @returns {Promise<object>} Detailed spell information
+   * Get details for a specific spell
+   * @param {number} spellId - The spell ID
+   * @returns {Promise<object>} Spell details
    */
   async getSpellDetails(spellId) {
-    try {
-      try {
-        // Try to get spell details from the content API
-        const spellResponse = await this._makeContentRequest(`/spell/${spellId}`);
-        return spellResponse.data;
-      } catch (error) {
-        if (error.name === 'CORSError') {
-          // Fallback to using the database
-          // In a real implementation, you would load the spell details from the database
-          // For now, we'll just return a simulated spell with the ID
-          const spells = await this.getSpells();
-          const spell = spells.find(s => s.id === spellId);
-          
-          if (!spell) {
-            throw new Error(`Failed to get spell details for spell ID ${spellId}`);
-          }
-          
-          return spell;
-        } else {
-          throw error;
-        }
-      }
-    } catch (error) {
-      console.error(`D&D Beyond Enhanced Importer | Error getting spell details for ${spellId}:`, error);
-      throw error;
+    const proxyAvailable = await this.checkProxyAvailability();
+
+    if (!proxyAvailable) {
+      throw new Error('Proxy server required for spell details');
     }
+
+    return await this._makeContentProxyRequest(`/spells/${spellId}`);
   }
-  
+
   /**
-   * Clear all cached data
+   * Clear all caches
    */
   clearCache() {
     this.sourceCache = null;
     this.itemCache = null;
     this.spellCache = null;
+    console.log('D&D Beyond Enhanced Importer | Caches cleared');
   }
 }
