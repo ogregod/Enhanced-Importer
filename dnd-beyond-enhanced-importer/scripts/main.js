@@ -4,6 +4,7 @@
 import { registerSettings } from './settings.js';
 import { DnDBeyondEnhancedAPI } from './api.js';
 import { EnhancedImporter } from './importer.js';
+import { DatabaseTools } from './database-tools.js';
 
 /**
  * Main module class

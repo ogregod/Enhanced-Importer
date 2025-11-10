@@ -1,6 +1,8 @@
 // D&D Beyond Enhanced Importer
 // Import Dialog
 
+import { HomebrewImporter } from './homebrew.js';
+
 /**
  * Dialog for selecting sources to import
  */
@@ -11,6 +13,7 @@ export class ImportDialog extends Application {
     this.sources = [];
     this.selectedSources = [];
     this.loading = true;
+    this.activeTab = 'sources'; // Default tab
   }
   
   static get defaultOptions() {
@@ -21,7 +24,8 @@ export class ImportDialog extends Application {
       width: 600,
       height: 700,
       resizable: true,
-      closeOnSubmit: false
+      closeOnSubmit: false,
+      tabs: [{ navSelector: ".tabs", contentSelector: ".content", initial: "sources" }]
     });
   }
   
@@ -62,6 +66,18 @@ export class ImportDialog extends Application {
   
   activateListeners(html) {
     super.activateListeners(html);
+    
+    // Initialize tabs
+    const tabs = new TabsV2({
+      navSelector: ".tabs",
+      contentSelector: ".content",
+      initial: "sources",
+      callback: (event, html, tab) => {
+        this.activeTab = tab;
+      }
+    });
+    
+    tabs.bind(html[0]);
     
     // Toggle all sources button
     html.find('.toggle-all-sources').click(event => {
@@ -164,6 +180,60 @@ export class ImportDialog extends Application {
       }
     });
     
+    // Homebrew import button
+    html.find('.import-homebrew-button').click(async event => {
+      event.preventDefault();
+      
+      // Get homebrew options
+      const homebrewUrl = html.find('#homebrew-url').val().trim();
+      
+      if (!homebrewUrl) {
+        ui.notifications.warn('Please enter a homebrew URL from D&D Beyond.');
+        return;
+      }
+      
+      const importItems = html.find('#import-homebrew-items').prop('checked');
+      const importSpells = html.find('#import-homebrew-spells').prop('checked');
+      const createFolders = html.find('#create-homebrew-folders').prop('checked');
+      const folderName = html.find('#homebrew-folder-name').val();
+      const overwriteExisting = html.find('#overwrite-homebrew-existing').prop('checked');
+      
+      if (!importItems && !importSpells) {
+        ui.notifications.warn('Please select at least one content type to import (items or spells).');
+        return;
+      }
+      
+      // Disable the import button
+      const importButton = html.find('.import-homebrew-button');
+      importButton.prop('disabled', true);
+      importButton.html('<i class="fas fa-spinner fa-spin"></i> Importing...');
+      
+      try {
+        // Create a new homebrew importer
+        const homebrewImporter = new HomebrewImporter(this.importer.api);
+        
+        // Import the homebrew content
+        const results = await homebrewImporter.importHomebrew(homebrewUrl, {
+          importItems,
+          importSpells,
+          createFolders,
+          folderName,
+          overwriteExisting
+        });
+        
+        // Show results
+        this._showHomebrewResults(results, homebrewUrl);
+        
+      } catch (error) {
+        console.error('D&D Beyond Enhanced Importer | Error importing homebrew:', error);
+        ui.notifications.error('Error importing homebrew. Please check the console for details.');
+      } finally {
+        // Re-enable the import button
+        importButton.prop('disabled', false);
+        importButton.html('<i class="fas fa-flask"></i> Import Homebrew');
+      }
+    });
+    
     // Update the Cobalt cookie button
     html.find('.update-cobalt').click(event => {
       event.preventDefault();
@@ -222,6 +292,46 @@ export class ImportDialog extends Application {
     
     new Dialog({
       title: 'D&D Beyond Import Results',
+      content: content,
+      buttons: {
+        close: {
+          icon: '<i class="fas fa-check"></i>',
+          label: 'Close'
+        }
+      }
+    }).render(true);
+  }
+  
+  /**
+   * Show homebrew import results
+   * @param {object} results - The import results
+   * @param {string} url - The homebrew URL
+   * @private
+   */
+  _showHomebrewResults(results, url) {
+    // Format the URL for display
+    const displayUrl = url.length > 40 ? url.substring(0, 37) + '...' : url;
+    
+    const content = `
+      <h3>Homebrew Import Complete</h3>
+      <p><strong>Source:</strong> <a href="${url}" target="_blank">${displayUrl}</a></p>
+      <h4>Items:</h4>
+      <ul>
+        <li>Successfully imported: ${results.items.success}</li>
+        <li>Skipped (already exists): ${results.items.skipped}</li>
+        <li>Errors: ${results.items.error}</li>
+      </ul>
+      <h4>Spells:</h4>
+      <ul>
+        <li>Successfully imported: ${results.spells.success}</li>
+        <li>Skipped (already exists): ${results.spells.skipped}</li>
+        <li>Errors: ${results.spells.error}</li>
+      </ul>
+      <p><strong>Note:</strong> Homebrew content may require manual adjustments. Please review all imported content before using it in your game.</p>
+    `;
+    
+    new Dialog({
+      title: 'D&D Beyond Homebrew Import Results',
       content: content,
       buttons: {
         close: {
