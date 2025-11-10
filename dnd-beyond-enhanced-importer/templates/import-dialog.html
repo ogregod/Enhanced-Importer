@@ -1,0 +1,79 @@
+<!-- D&D Beyond Enhanced Importer Dialog -->
+<div class="dialog-content">
+  <div class="title-bar">
+    <h2>D&D Beyond Enhanced Importer</h2>
+    <div>
+      <button class="update-cobalt cobalt-button">
+        <i class="fas fa-key"></i> Update Cobalt Cookie
+      </button>
+    </div>
+  </div>
+  
+  <div class="info-box">
+    <h3>Import Information</h3>
+    <p>Select which sources to import items and spells from. Only sources you have purchased on D&D Beyond will be available.</p>
+    <p><strong>Last Synchronization:</strong> {{lastSync}}</p>
+  </div>
+  
+  {{#if loading}}
+  <div class="info-box" style="text-align: center;">
+    <p><i class="fas fa-spinner fa-pulse"></i> Loading sources from D&D Beyond...</p>
+  </div>
+  {{else}}
+  <div class="source-list">
+    <div class="source-list-header">
+      <h3>Available Sources</h3>
+      <button class="toggle-all-sources">Select All</button>
+    </div>
+    {{#each sources}}
+    <div class="source-item">
+      <input type="checkbox" id="source-{{id}}" class="source-select" value="{{id}}" {{#if (includes ../selectedSources id)}}checked{{/if}}>
+      <label for="source-{{id}}" class="source-name">{{name}}</label>
+    </div>
+    {{/each}}
+  </div>
+  
+  <div class="options-section">
+    <h3>Import Options</h3>
+    <div class="form-group">
+      <label for="import-items">
+        <input type="checkbox" id="import-items" name="importItems" {{#if importConfig.importItems}}checked{{/if}}>
+        Import Items
+      </label>
+    </div>
+    <div class="form-group">
+      <label for="import-spells">
+        <input type="checkbox" id="import-spells" name="importSpells" {{#if importConfig.importSpells}}checked{{/if}}>
+        Import Spells
+      </label>
+    </div>
+    <div class="form-group">
+      <label for="create-folders">
+        <input type="checkbox" id="create-folders" name="createFolders" {{#if importConfig.createFolders}}checked{{/if}}>
+        Create Folders
+      </label>
+    </div>
+    <div class="form-group">
+      <label for="folder-structure">Folder Structure:</label>
+      <select id="folder-structure" name="folderStructure">
+        <option value="sourceBook" {{#if (eq importConfig.folderStructure "sourceBook")}}selected{{/if}}>By Source Book</option>
+        <option value="itemType" {{#if (eq importConfig.folderStructure "itemType")}}selected{{/if}}>By Item Type</option>
+        <option value="flat" {{#if (eq importConfig.folderStructure "flat")}}selected{{/if}}>Flat (No Subfolders)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="overwrite-existing">
+        <input type="checkbox" id="overwrite-existing" name="overwriteExisting" {{#if importConfig.overwriteExisting}}checked{{/if}}>
+        Overwrite Existing Items
+      </label>
+    </div>
+  </div>
+  {{/if}}
+  
+  <div class="button-section">
+    <div></div>
+    <button class="import-button" {{#if loading}}disabled{{/if}}>
+      <i class="fas fa-download"></i> Import Selected Sources
+    </button>
+  </div>
+</div>

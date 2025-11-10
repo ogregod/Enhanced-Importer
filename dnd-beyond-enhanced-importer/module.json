@@ -1,0 +1,56 @@
+{
+  "id": "dnd-beyond-enhanced-importer",
+  "title": "D&D Beyond Enhanced Importer",
+  "description": "Import all your purchased D&D Beyond content with enhanced functionality. All items and spells will be properly configured with correct pricing, templates, effects, and rolls.",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "Your Name",
+      "email": "your.email@example.com",
+      "discord": "YourDiscordHandle"
+    }
+  ],
+  "compatibility": {
+    "minimum": "11",
+    "verified": "11",
+    "maximum": "11"
+  },
+  "esmodules": [
+    "scripts/main.js",
+    "scripts/importer.js",
+    "scripts/api.js",
+    "scripts/settings.js",
+    "scripts/dialog.js",
+    "scripts/utilities.js"
+  ],
+  "styles": [
+    "styles/importer.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "url": "https://github.com/yourusername/dnd-beyond-enhanced-importer",
+  "manifest": "https://github.com/yourusername/dnd-beyond-enhanced-importer/releases/download/v1.0.0/module.json",
+  "download": "https://github.com/yourusername/dnd-beyond-enhanced-importer/releases/download/v1.0.0/dnd-beyond-enhanced-importer.zip",
+  "license": "LICENSE",
+  "readme": "README.md",
+  "bugs": "https://github.com/yourusername/dnd-beyond-enhanced-importer/issues",
+  "system": ["dnd5e"],
+  "socket": true,
+  "relationships": {
+    "requires": [
+      {
+        "id": "lib-wrapper",
+        "type": "module",
+        "manifest": "https://github.com/ruipin/fvtt-lib-wrapper/releases/latest/download/module.json",
+        "compatibility": {
+          "verified": "1.12.13.0"
+        }
+      }
+    ]
+  }
+}

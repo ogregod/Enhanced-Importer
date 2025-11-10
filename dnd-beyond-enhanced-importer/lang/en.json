@@ -1,0 +1,103 @@
+{
+  "dnd-beyond-enhanced-importer": {
+    "settings": {
+      "cobaltCookie": {
+        "name": "D&D Beyond Cobalt Cookie",
+        "hint": "Your D&D Beyond Cobalt Cookie, used to authenticate with D&D Beyond and access your purchased content."
+      },
+      "lastSync": {
+        "name": "Last Synchronization",
+        "hint": "Date of last successful synchronization with D&D Beyond."
+      },
+      "importerConfig": {
+        "name": "Importer Settings",
+        "label": "Configure Importer",
+        "hint": "Configure how content is imported from D&D Beyond."
+      },
+      "importerHelp": {
+        "name": "Help & Instructions",
+        "label": "How to Use",
+        "hint": "Instructions for setting up and using the Enhanced Importer."
+      }
+    },
+    "dialog": {
+      "title": "D&D Beyond Enhanced Importer",
+      "info": "Select which sources to import items and spells from. Only sources you have purchased on D&D Beyond will be available.",
+      "lastSync": "Last Synchronization: {date}",
+      "loading": "Loading sources from D&D Beyond...",
+      "sourcesHeader": "Available Sources",
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All",
+      "optionsHeader": "Import Options",
+      "importItems": "Import Items",
+      "importSpells": "Import Spells",
+      "createFolders": "Create Folders",
+      "folderStructure": "Folder Structure:",
+      "bySourceBook": "By Source Book",
+      "byItemType": "By Item Type",
+      "flat": "Flat (No Subfolders)",
+      "overwriteExisting": "Overwrite Existing Items",
+      "updateCobalt": "Update Cobalt Cookie",
+      "importButton": "Import Selected Sources",
+      "importing": "Importing...",
+      "noSourcesSelected": "Please select at least one source to import.",
+      "noContentSelected": "Please select at least one content type to import (items or spells)."
+    },
+    "progress": {
+      "title": "Importing...",
+      "item": "Importing Item: {name}",
+      "spell": "Importing Spell: {name}"
+    },
+    "cobalt": {
+      "title": "D&D Beyond Enhanced Importer - Cobalt Cookie Setup",
+      "instructions": "To import content from D&D Beyond, you need to provide your Cobalt cookie. This is used to authenticate with D&D Beyond and access your purchased content.",
+      "howTo": "How to get your Cobalt Cookie:",
+      "step1": "Log in to D&D Beyond.",
+      "step2": "Open your browser's Developer Tools (F12 or Ctrl+Shift+I).",
+      "step3": "Go to the Application or Storage tab.",
+      "step4": "Find \"Cookies\" in the sidebar and select \"https://www.dndbeyond.com\".",
+      "step5": "Look for a cookie named \"CobaltSession\" and copy its value.",
+      "label": "Cobalt Cookie:",
+      "placeholder": "Paste your Cobalt cookie here",
+      "note": "Your Cobalt cookie is only stored locally on your Foundry server and is used solely for API authentication with D&D Beyond. It is never shared with anyone else.",
+      "save": "Save Cookie",
+      "cancel": "Cancel",
+      "validating": "Validating Cobalt cookie...",
+      "validSuccess": "Cobalt cookie saved successfully.",
+      "validError": "Invalid Cobalt cookie. Please check and try again."
+    },
+    "results": {
+      "title": "D&D Beyond Import Results",
+      "complete": "Import Complete",
+      "items": "Items:",
+      "spells": "Spells:",
+      "success": "Successfully imported: {count}",
+      "skipped": "Skipped (already exists): {count}",
+      "error": "Errors: {count}",
+      "close": "Close"
+    },
+    "setup": {
+      "title": "D&D Beyond Enhanced Importer Setup",
+      "needCobalt": "The D&D Beyond Enhanced Importer requires a Cobalt cookie from D&D Beyond to access your purchased content.",
+      "goToSettings": "Please go to Settings > Module Settings > D&D Beyond Enhanced Importer to set up your Cobalt cookie.",
+      "setup": "Go to Settings",
+      "later": "Later"
+    },
+    "errors": {
+      "noCobalt": "No Cobalt cookie available. Please configure your Cobalt cookie in the module settings.",
+      "apiError": "D&D Beyond API error: {status} {text}",
+      "getUserInfo": "Failed to get user info: {status} {text}",
+      "getSources": "Failed to get sources from D&D Beyond",
+      "getItems": "Failed to get items from D&D Beyond",
+      "getSpells": "Failed to get spells from D&D Beyond",
+      "getItemDetails": "Failed to get item details for item ID {id}",
+      "getSpellDetails": "Failed to get spell details for spell ID {id}",
+      "importItem": "Error importing item {name}",
+      "importSpell": "Error importing spell {name}",
+      "importContent": "Error importing content",
+      "validateCookie": "Error validating cookie",
+      "loadingSources": "Error loading sources. Please check the console for details.",
+      "onlyGM": "Only Game Masters can import content."
+    }
+  }
+}

@@ -1,0 +1,48 @@
+<!-- D&D Beyond Enhanced Importer Homebrew Tab -->
+<div class="homebrew-tab tab-content" data-tab="homebrew">
+  <div class="info-box">
+    <h3>Homebrew Content</h3>
+    <p>Import homebrew content from D&D Beyond. Note that homebrew content might not be perfectly converted and should be checked after import.</p>
+    <p class="warning"><i class="fas fa-exclamation-triangle"></i> You should always review homebrew content carefully before using it in your game.</p>
+  </div>
+  
+  <div class="form-group">
+    <label for="homebrew-url">D&D Beyond Homebrew URL:</label>
+    <input type="text" id="homebrew-url" name="homebrewUrl" placeholder="https://www.dndbeyond.com/homebrew/...">
+    <p class="notes">Enter the URL of the homebrew content on D&D Beyond.</p>
+  </div>
+  
+  <div class="form-group">
+    <label>
+      <input type="checkbox" id="import-homebrew-items" name="importHomebrewItems" checked>
+      Import Items
+    </label>
+  </div>
+  
+  <div class="form-group">
+    <label>
+      <input type="checkbox" id="import-homebrew-spells" name="importHomebrewSpells" checked>
+      Import Spells
+    </label>
+  </div>
+  
+  <div class="form-group">
+    <label>
+      <input type="checkbox" id="create-homebrew-folders" name="createHomebrewFolders" checked>
+      Create Folders
+    </label>
+  </div>
+  
+  <div class="form-group">
+    <label for="homebrew-folder-name">Homebrew Folder Name:</label>
+    <input type="text" id="homebrew-folder-name" name="homebrewFolderName" value="Homebrew">
+    <p class="notes">The name of the folder to create for homebrew content.</p>
+  </div>
+  
+  <div class="button-section">
+    <div></div>
+    <button class="import-homebrew-button">
+      <i class="fas fa-flask"></i> Import Homebrew
+    </button>
+  </div>
+</div>

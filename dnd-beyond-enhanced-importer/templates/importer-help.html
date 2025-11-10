@@ -1,0 +1,76 @@
+<!-- D&D Beyond Enhanced Importer Help Dialog -->
+<div class="ddb-help-container">
+  <h2>D&D Beyond Enhanced Importer - Help</h2>
+  
+  <h3>About This Module</h3>
+  <p>The D&D Beyond Enhanced Importer allows you to import items and spells from your D&D Beyond account into Foundry VTT. All imported content will have proper pricing, templates, effects, and rolls.</p>
+  
+  <h3>Getting Started</h3>
+  <p>To use this module, you need a valid Cobalt cookie from your D&D Beyond account.</p>
+  
+  <h4>Setting Up Your Cobalt Cookie</h4>
+  <ol>
+    <li>Log in to <a href="https://www.dndbeyond.com" target="_blank">D&D Beyond</a>.</li>
+    <li>Open your browser's Developer Tools (F12 or Ctrl+Shift+I).</li>
+    <li>Go to the Application or Storage tab.</li>
+    <li>Find "Cookies" in the sidebar and select "https://www.dndbeyond.com".</li>
+    <li>Look for a cookie named "CobaltSession" and copy its value.</li>
+    <li>In Foundry VTT, click on the "D&D Beyond" button in the sidebar.</li>
+    <li>Click "Update Cobalt Cookie" and paste your Cobalt cookie in the dialog.</li>
+  </ol>
+  
+  <h3>Importing Content</h3>
+  <p>Once you've set up your Cobalt cookie, you can import content by following these steps:</p>
+  <ol>
+    <li>Click on the "D&D Beyond" button in the sidebar.</li>
+    <li>Select which sources you want to import from.</li>
+    <li>Choose whether to import items, spells, or both.</li>
+    <li>Configure folder options if desired.</li>
+    <li>Click "Import Selected Sources" to start the import process.</li>
+  </ol>
+  
+  <h3>Import Options</h3>
+  <dl>
+    <dt>Import Items</dt>
+    <dd>Import items such as weapons, armor, equipment, etc.</dd>
+    
+    <dt>Import Spells</dt>
+    <dd>Import spells from the selected sources.</dd>
+    
+    <dt>Create Folders</dt>
+    <dd>Create folders to organize imported content.</dd>
+    
+    <dt>Folder Structure</dt>
+    <dd>Choose how to organize content in folders: by source book, by item type, or in a flat structure.</dd>
+    
+    <dt>Overwrite Existing</dt>
+    <dd>Update existing items when importing. If unchecked, existing items will be skipped.</dd>
+  </dl>
+  
+  <h3>FAQ</h3>
+  <dl>
+    <dt>Is my Cobalt cookie secure?</dt>
+    <dd>Your Cobalt cookie is stored locally on your Foundry server and is only used to authenticate with D&D Beyond. It is never shared with anyone else.</dd>
+    
+    <dt>Why can't I see all my sources?</dt>
+    <dd>Only sources you have purchased on D&D Beyond will be available for import.</dd>
+    
+    <dt>Can I import my character sheets?</dt>
+    <dd>This module currently only imports items and spells. Character import may be added in a future version.</dd>
+    
+    <dt>How often should I update my Cobalt cookie?</dt>
+    <dd>D&D Beyond Cobalt cookies typically expire after 14 days. If you encounter authentication issues, try updating your Cobalt cookie.</dd>
+  </dl>
+  
+  <h3>Troubleshooting</h3>
+  <dl>
+    <dt>Invalid Cobalt Cookie</dt>
+    <dd>Make sure you've copied the entire Cobalt cookie value from D&D Beyond. Try logging out and back in to D&D Beyond to get a fresh cookie.</dd>
+    
+    <dt>Import Fails</dt>
+    <dd>Check the browser console (F12) for error messages. Ensure your Foundry VTT server has internet access and can connect to D&D Beyond.</dd>
+    
+    <dt>Missing Content</dt>
+    <dd>Verify that you own the content on D&D Beyond. Some content might be restricted by your D&D Beyond subscription.</dd>
+  </dl>
+</div>

@@ -1,0 +1,158 @@
+[
+  {
+    "id": 1,
+    "name": "Player's Handbook",
+    "abbreviation": "PHB",
+    "isFree": false
+  },
+  {
+    "id": 2,
+    "name": "Dungeon Master's Guide",
+    "abbreviation": "DMG",
+    "isFree": false
+  },
+  {
+    "id": 3,
+    "name": "Monster Manual",
+    "abbreviation": "MM",
+    "isFree": false
+  },
+  {
+    "id": 5,
+    "name": "Basic Rules",
+    "abbreviation": "BR",
+    "isFree": true
+  },
+  {
+    "id": 6,
+    "name": "Sword Coast Adventurer's Guide",
+    "abbreviation": "SCAG",
+    "isFree": false
+  },
+  {
+    "id": 7,
+    "name": "Volo's Guide to Monsters",
+    "abbreviation": "VGM",
+    "isFree": false
+  },
+  {
+    "id": 8,
+    "name": "Xanathar's Guide to Everything",
+    "abbreviation": "XGE",
+    "isFree": false
+  },
+  {
+    "id": 9,
+    "name": "Mordenkainen's Tome of Foes",
+    "abbreviation": "MTF",
+    "isFree": false
+  },
+  {
+    "id": 10,
+    "name": "Guildmasters' Guide to Ravnica",
+    "abbreviation": "GGR",
+    "isFree": false
+  },
+  {
+    "id": 11,
+    "name": "Acquisitions Incorporated",
+    "abbreviation": "AI",
+    "isFree": false
+  },
+  {
+    "id": 12,
+    "name": "Eberron: Rising from the Last War",
+    "abbreviation": "ERLW",
+    "isFree": false
+  },
+  {
+    "id": 13,
+    "name": "Explorer's Guide to Wildemount",
+    "abbreviation": "EGW",
+    "isFree": false
+  },
+  {
+    "id": 14,
+    "name": "Mythic Odysseys of Theros",
+    "abbreviation": "MOT",
+    "isFree": false
+  },
+  {
+    "id": 15,
+    "name": "Tasha's Cauldron of Everything",
+    "abbreviation": "TCE",
+    "isFree": false
+  },
+  {
+    "id": 16,
+    "name": "Van Richten's Guide to Ravenloft",
+    "abbreviation": "VRGR",
+    "isFree": false
+  },
+  {
+    "id": 17,
+    "name": "The Wild Beyond the Witchlight",
+    "abbreviation": "WBW",
+    "isFree": false
+  },
+  {
+    "id": 18,
+    "name": "Fizban's Treasury of Dragons",
+    "abbreviation": "FTD",
+    "isFree": false
+  },
+  {
+    "id": 19,
+    "name": "Strixhaven: A Curriculum of Chaos",
+    "abbreviation": "SCC",
+    "isFree": false
+  },
+  {
+    "id": 20,
+    "name": "Mordenkainen Presents: Monsters of the Multiverse",
+    "abbreviation": "MPMM",
+    "isFree": false
+  },
+  {
+    "id": 21,
+    "name": "Journeys through the Radiant Citadel",
+    "abbreviation": "JRC",
+    "isFree": false
+  },
+  {
+    "id": 22,
+    "name": "Spelljammer: Adventures in Space",
+    "abbreviation": "SAiS",
+    "isFree": false
+  },
+  {
+    "id": 23,
+    "name": "Dragonlance: Shadow of the Dragon Queen",
+    "abbreviation": "DSotDQ",
+    "isFree": false
+  },
+  {
+    "id": 24,
+    "name": "Keys from the Golden Vault",
+    "abbreviation": "KftGV",
+    "isFree": false
+  },
+  {
+    "id": 25,
+    "name": "Bigby Presents: Glory of the Giants",
+    "abbreviation": "BPGotG",
+    "isFree": false
+  },
+  {
+    "id": 26,
+    "name": "Planescape: Adventures in the Multiverse",
+    "abbreviation": "PAitM",
+    "isFree": false
+  },
+  {
+    "id": 27,
+    "name": "The Book of Many Things",
+    "abbreviation": "TBoMT",
+    "isFree": false
+  }
+]

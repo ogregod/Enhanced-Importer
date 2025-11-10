@@ -1,0 +1,50 @@
+<!-- D&D Beyond Enhanced Importer Configuration Dialog -->
+<form>
+  <div class="form-group">
+    <label for="import-items">
+      <input type="checkbox" id="import-items" name="importItems" {{#if importConfig.importItems}}checked{{/if}}>
+      Import Items
+    </label>
+    <p class="notes">Enable importing of items (weapons, armor, equipment, etc.)</p>
+  </div>
+  
+  <div class="form-group">
+    <label for="import-spells">
+      <input type="checkbox" id="import-spells" name="importSpells" {{#if importConfig.importSpells}}checked{{/if}}>
+      Import Spells
+    </label>
+    <p class="notes">Enable importing of spells</p>
+  </div>
+  
+  <div class="form-group">
+    <label for="create-folders">
+      <input type="checkbox" id="create-folders" name="createFolders" {{#if importConfig.createFolders}}checked{{/if}}>
+      Create Folders
+    </label>
+    <p class="notes">Create folders to organize imported content</p>
+  </div>
+  
+  <div class="form-group">
+    <label for="folder-structure">Folder Structure:</label>
+    <select id="folder-structure" name="folderStructure">
+      <option value="sourceBook" {{#if (eq importConfig.folderStructure "sourceBook")}}selected{{/if}}>By Source Book</option>
+      <option value="itemType" {{#if (eq importConfig.folderStructure "itemType")}}selected{{/if}}>By Item Type</option>
+      <option value="flat" {{#if (eq importConfig.folderStructure "flat")}}selected{{/if}}>Flat (No Subfolders)</option>
+    </select>
+    <p class="notes">How to organize imported content in folders</p>
+  </div>
+  
+  <div class="form-group">
+    <label for="overwrite-existing">
+      <input type="checkbox" id="overwrite-existing" name="overwriteExisting" {{#if importConfig.overwriteExisting}}checked{{/if}}>
+      Overwrite Existing Items
+    </label>
+    <p class="notes">Update existing items when importing (if unchecked, existing items will be skipped)</p>
+  </div>
+  
+  <div class="form-group">
+    <button type="submit">
+      <i class="fas fa-save"></i> Save Configuration
+    </button>
+  </div>
+</form>

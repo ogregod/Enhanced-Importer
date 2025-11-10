@@ -1,0 +1,28 @@
+{
+  "name": "dnd-beyond-enhanced-importer",
+  "version": "1.0.0",
+  "description": "Import all your purchased D&D Beyond content with enhanced functionality for Foundry VTT",
+  "main": "scripts/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "echo \"No build step required\" && exit 0",
+    "lint": "eslint scripts/"
+  },
+  "keywords": [
+    "foundryvtt",
+    "dnd5e",
+    "dndbeyond",
+    "importer"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.56.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "foundryMinimum": "13",
+  "foundryMaximum": "13",
+  "foundrySystem": "dnd5e@5.1.0"
+}
