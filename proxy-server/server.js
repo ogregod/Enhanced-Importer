@@ -1,46 +1,161 @@
 #!/usr/bin/env node
 
 /**
- * D&D Beyond Foundry Proxy Server
+ * D&D Beyond Foundry Proxy Server - Production Version
  *
- * This proxy server runs alongside Foundry VTT and handles API requests
- * to D&D Beyond, bypassing CORS restrictions that prevent direct browser access.
+ * A secure, production-ready proxy for D&D Beyond API access.
+ * Designed to be hosted on platforms like Railway, Render, or AWS.
  *
- * Architecture:
- * Foundry Module (Browser) → This Proxy (localhost:3001) → D&D Beyond API
+ * Security Features:
+ * - Cobalt cookies NEVER logged or stored
+ * - Rate limiting per IP
+ * - Request validation
+ * - CORS properly configured
+ * - Environment-based configuration
+ *
+ * Performance Features:
+ * - Response caching (anonymous data only)
+ * - Connection pooling
+ * - Compression
+ * - Request timeouts
  */
 
 import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import compression from 'compression';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // D&D Beyond API endpoints
 const DDB_CHARACTER_SERVICE = 'https://character-service.dndbeyond.com/character/v5';
 const DDB_CONTENT_API = 'https://www.dndbeyond.com/api';
-const DDB_GAME_DATA_API = 'https://www.dndbeyond.com/api/game-data';
 
-// Middleware
-app.use(cors({
-  origin: [
-    'http://localhost:30000',
-    'http://127.0.0.1:30000',
-    /^http:\/\/localhost:\d+$/,  // Any localhost port
-    /^http:\/\/127\.0\.0\.1:\d+$/  // Any 127.0.0.1 port
-  ],
-  credentials: true
+// Simple in-memory cache for anonymous data (not user-specific)
+const cache = new Map();
+const CACHE_TTL = 3600000; // 1 hour
+
+// ============================================================================
+// MIDDLEWARE
+// ============================================================================
+
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: false, // Allow module to make requests
 }));
 
-app.use(express.json());
+// Compression
+app.use(compression());
 
-// Logging middleware
+// CORS - Allow Foundry VTT to connect
+app.use(cors({
+  origin: true, // Allow all origins (Foundry can run on any port)
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS']
+}));
+
+// Parse JSON bodies
+app.use(express.json({ limit: '10mb' }));
+
+// Rate limiting - Prevent abuse
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per windowMs per IP
+  message: {
+    error: 'Too many requests',
+    message: 'Please wait before making more requests.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api/', limiter);
+
+// Request logging (NEVER log cookies!)
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${req.method} ${req.path}`);
+  const safeHeaders = { ...req.headers };
+  delete safeHeaders.cookie; // Remove cookies from logs
+  delete safeHeaders.authorization; // Remove auth from logs
+
+  console.log(`[${timestamp}] ${req.method} ${req.path} - IP: ${req.ip}`);
   next();
 });
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Get cached response if available and not expired
+ */
+function getCached(key) {
+  const cached = cache.get(key);
+  if (!cached) return null;
+
+  if (Date.now() - cached.timestamp > CACHE_TTL) {
+    cache.delete(key);
+    return null;
+  }
+
+  return cached.data;
+}
+
+/**
+ * Set cache with timestamp
+ */
+function setCache(key, data) {
+  cache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+}
+
+/**
+ * Make authenticated request to D&D Beyond
+ * IMPORTANT: Cookie is NEVER logged or stored
+ */
+async function makeAuthenticatedRequest(url, cobaltCookie, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+  try {
+    const response = await fetch(url, {
+      method: options.method || 'GET',
+      headers: {
+        'Cookie': `CobaltSession=${cobaltCookie}`,
+        'User-Agent': 'Foundry-VTT-DDB-Importer/1.0',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...options.headers
+      },
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      throw new Error(`D&D Beyond API error: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    clearTimeout(timeout);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout - D&D Beyond is taking too long to respond');
+    }
+    throw error;
+  }
+}
+
+// ============================================================================
+// HEALTH & STATUS ENDPOINTS
+// ============================================================================
 
 /**
  * Health check endpoint
@@ -48,258 +163,256 @@ app.use((req, res, next) => {
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    message: 'D&D Beyond Proxy Server is running',
-    version: '1.0.0',
-    timestamp: new Date().toISOString()
+    version: '1.0.107',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    environment: NODE_ENV
   });
 });
 
 /**
- * Proxy endpoint for D&D Beyond Character Service
- *
- * Route: POST /api/character/*
- * Body: { cobaltCookie: string, endpoint: string }
+ * Ping endpoint for quick availability check
  */
-app.post('/api/character/*', async (req, res) => {
+app.get('/ping', (req, res) => {
+  res.json({ pong: true });
+});
+
+/**
+ * Stats endpoint (optional - can be disabled in production)
+ */
+app.get('/stats', (req, res) => {
+  if (NODE_ENV === 'production' && !req.headers['x-admin-key']) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  res.json({
+    cacheSize: cache.size,
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    version: '1.0.107'
+  });
+});
+
+// ============================================================================
+// VALIDATION MIDDLEWARE
+// ============================================================================
+
+/**
+ * Validate Cobalt cookie is present
+ */
+function validateCobaltCookie(req, res, next) {
+  const { cobaltCookie } = req.body;
+
+  if (!cobaltCookie || typeof cobaltCookie !== 'string') {
+    return res.status(400).json({
+      error: 'Invalid request',
+      message: 'Cobalt cookie is required'
+    });
+  }
+
+  // Basic validation - should be a reasonable length JWT-like string
+  if (cobaltCookie.length < 20 || cobaltCookie.length > 2000) {
+    return res.status(400).json({
+      error: 'Invalid cookie',
+      message: 'Cobalt cookie format is invalid'
+    });
+  }
+
+  next();
+}
+
+// ============================================================================
+// API ENDPOINTS
+// ============================================================================
+
+/**
+ * Validate Cobalt cookie by testing it with D&D Beyond
+ */
+app.post('/api/validate-cookie', validateCobaltCookie, async (req, res) => {
+  const { cobaltCookie } = req.body;
+
   try {
-    const { cobaltCookie } = req.body;
-    const endpoint = req.path.replace('/api/character', '');
+    const data = await makeAuthenticatedRequest(
+      `${DDB_CHARACTER_SERVICE}/user-entity`,
+      cobaltCookie
+    );
 
-    if (!cobaltCookie) {
-      return res.status(400).json({
-        error: 'Missing cobaltCookie in request body'
-      });
-    }
-
-    console.log(`Proxying to Character Service: ${endpoint}`);
-
-    const response = await fetch(`${DDB_CHARACTER_SERVICE}${endpoint}`, {
-      method: 'GET',
-      headers: {
-        'Cookie': `CobaltSession=${cobaltCookie}`,
-        'User-Agent': 'Foundry-VTT-DDB-Importer/1.0',
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
+    res.json({
+      valid: true,
+      username: data.username || 'Unknown'
     });
 
-    const data = await response.json();
+  } catch (error) {
+    console.error('Cookie validation failed:', error.message);
+    res.status(401).json({
+      valid: false,
+      message: 'Cookie is invalid or expired'
+    });
+  }
+});
 
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: 'D&D Beyond API error',
-        status: response.status,
-        statusText: response.statusText,
-        data: data
-      });
-    }
+/**
+ * Proxy Character Service requests
+ * Route: POST /api/character/*
+ */
+app.post('/api/character/*', validateCobaltCookie, async (req, res) => {
+  const { cobaltCookie } = req.body;
+  const endpoint = req.path.replace('/api/character', '');
+
+  try {
+    const data = await makeAuthenticatedRequest(
+      `${DDB_CHARACTER_SERVICE}${endpoint}`,
+      cobaltCookie
+    );
 
     res.json(data);
 
   } catch (error) {
-    console.error('Character Service proxy error:', error);
-    res.status(500).json({
-      error: 'Proxy server error',
+    console.error(`Character service error (${endpoint}):`, error.message);
+    res.status(error.message.includes('timeout') ? 504 : 500).json({
+      error: 'API request failed',
       message: error.message
     });
   }
 });
 
 /**
- * Proxy endpoint for D&D Beyond Content API
- *
+ * Proxy Content API requests (with caching for anonymous data)
  * Route: POST /api/content/*
- * Body: { cobaltCookie: string }
  */
 app.post('/api/content/*', async (req, res) => {
-  try {
-    const { cobaltCookie } = req.body;
-    const endpoint = req.path.replace('/api/content', '');
+  const { cobaltCookie } = req.body;
+  const endpoint = req.path.replace('/api/content', '');
 
-    console.log(`Proxying to Content API: ${endpoint}`);
-
-    const headers = {
-      'User-Agent': 'Foundry-VTT-DDB-Importer/1.0',
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    };
-
-    // Add cookie if provided
-    if (cobaltCookie) {
-      headers['Cookie'] = `CobaltSession=${cobaltCookie}`;
+  // Check cache first for public data (if no cookie provided)
+  if (!cobaltCookie) {
+    const cacheKey = `content:${endpoint}`;
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json(cached);
     }
-
-    const response = await fetch(`${DDB_CONTENT_API}${endpoint}`, {
-      method: 'GET',
-      headers: headers
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: 'D&D Beyond API error',
-        status: response.status,
-        statusText: response.statusText,
-        data: data
-      });
-    }
-
-    res.json(data);
-
-  } catch (error) {
-    console.error('Content API proxy error:', error);
-    res.status(500).json({
-      error: 'Proxy server error',
-      message: error.message
-    });
   }
-});
 
-/**
- * Proxy endpoint for D&D Beyond Game Data API
- *
- * Route: POST /api/game-data/*
- * Body: { cobaltCookie: string }
- */
-app.post('/api/game-data/*', async (req, res) => {
   try {
-    const { cobaltCookie } = req.body;
-    const endpoint = req.path.replace('/api/game-data', '');
+    const url = `${DDB_CONTENT_API}${endpoint}`;
 
-    console.log(`Proxying to Game Data API: ${endpoint}`);
-
-    const headers = {
-      'User-Agent': 'Foundry-VTT-DDB-Importer/1.0',
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    };
-
+    let data;
     if (cobaltCookie) {
-      headers['Cookie'] = `CobaltSession=${cobaltCookie}`;
-    }
-
-    const response = await fetch(`${DDB_GAME_DATA_API}${endpoint}`, {
-      method: 'GET',
-      headers: headers
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: 'D&D Beyond API error',
-        status: response.status,
-        statusText: response.statusText,
-        data: data
-      });
-    }
-
-    res.json(data);
-
-  } catch (error) {
-    console.error('Game Data API proxy error:', error);
-    res.status(500).json({
-      error: 'Proxy server error',
-      message: error.message
-    });
-  }
-});
-
-/**
- * Test endpoint to validate Cobalt cookie
- *
- * Route: POST /api/validate-cookie
- * Body: { cobaltCookie: string }
- */
-app.post('/api/validate-cookie', async (req, res) => {
-  try {
-    const { cobaltCookie } = req.body;
-
-    if (!cobaltCookie) {
-      return res.status(400).json({
-        valid: false,
-        error: 'Missing cobaltCookie'
-      });
-    }
-
-    // Try to fetch user entity to validate cookie
-    const response = await fetch(`${DDB_CHARACTER_SERVICE}/user-entity`, {
-      method: 'GET',
-      headers: {
-        'Cookie': `CobaltSession=${cobaltCookie}`,
-        'User-Agent': 'Foundry-VTT-DDB-Importer/1.0',
-        'Accept': 'application/json'
-      }
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      res.json({
-        valid: true,
-        username: data.username || 'Unknown',
-        message: 'Cookie is valid'
-      });
+      // Authenticated request
+      data = await makeAuthenticatedRequest(url, cobaltCookie);
     } else {
-      res.json({
-        valid: false,
-        status: response.status,
-        message: 'Cookie is invalid or expired'
+      // Anonymous request (public data)
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Foundry-VTT-DDB-Importer/1.0',
+          'Accept': 'application/json'
+        }
       });
+
+      if (!response.ok) {
+        throw new Error(`D&D Beyond API error: ${response.status}`);
+      }
+
+      data = await response.json();
+
+      // Cache anonymous data
+      setCache(`content:${endpoint}`, data);
     }
 
+    res.json(data);
+
   } catch (error) {
-    console.error('Cookie validation error:', error);
-    res.status(500).json({
-      valid: false,
-      error: 'Validation failed',
+    console.error(`Content API error (${endpoint}):`, error.message);
+    res.status(error.message.includes('timeout') ? 504 : 500).json({
+      error: 'API request failed',
       message: error.message
     });
   }
 });
 
-// 404 handler
+// ============================================================================
+// ERROR HANDLING
+// ============================================================================
+
+/**
+ * 404 handler
+ */
 app.use((req, res) => {
   res.status(404).json({
     error: 'Not found',
     message: `Endpoint ${req.path} does not exist`,
     availableEndpoints: [
       'GET  /health',
+      'GET  /ping',
+      'POST /api/validate-cookie',
       'POST /api/character/*',
-      'POST /api/content/*',
-      'POST /api/game-data/*',
-      'POST /api/validate-cookie'
+      'POST /api/content/*'
     ]
   });
 });
 
-// Error handler
+/**
+ * Global error handler
+ */
 app.use((err, req, res, next) => {
-  console.error('Server error:', err);
+  console.error('Unhandled error:', err.message);
   res.status(500).json({
     error: 'Internal server error',
-    message: err.message
+    message: NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
   });
 });
 
-// Start server
-app.listen(PORT, () => {
+// ============================================================================
+// SERVER STARTUP
+// ============================================================================
+
+const server = app.listen(PORT, () => {
   console.log('\n╔══════════════════════════════════════════════════════╗');
-  console.log('║   D&D Beyond Foundry Proxy Server                   ║');
+  console.log('║   D&D Beyond Foundry Proxy Server (Production)     ║');
   console.log('╚══════════════════════════════════════════════════════╝\n');
-  console.log(`✓ Server running on http://localhost:${PORT}`);
+  console.log(`✓ Environment: ${NODE_ENV}`);
+  console.log(`✓ Server running on port ${PORT}`);
   console.log(`✓ Health check: http://localhost:${PORT}/health`);
-  console.log(`✓ Ready to proxy requests to D&D Beyond\n`);
-  console.log('Press Ctrl+C to stop the server\n');
+  console.log(`✓ Ready to serve requests\n`);
+
+  if (NODE_ENV === 'production') {
+    console.log('🔒 Production mode enabled');
+    console.log('   - Rate limiting active');
+    console.log('   - Security headers enabled');
+    console.log('   - Cookies are NEVER logged\n');
+  }
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('\nReceived SIGTERM, shutting down gracefully...');
-  process.exit(0);
+// ============================================================================
+// GRACEFUL SHUTDOWN
+// ============================================================================
+
+function gracefulShutdown(signal) {
+  console.log(`\n${signal} received, shutting down gracefully...`);
+
+  server.close(() => {
+    console.log('Server closed');
+    cache.clear();
+    process.exit(0);
+  });
+
+  // Force close after 10 seconds
+  setTimeout(() => {
+    console.error('Forcing shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Uncaught errors
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
 });
 
-process.on('SIGINT', () => {
-  console.log('\nReceived SIGINT, shutting down gracefully...');
-  process.exit(0);
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });

@@ -2,7 +2,7 @@
 
 Import all your purchased D&D Beyond content directly into Foundry VTT with full functionality. Items and spells come properly configured with pricing, templates, effects, and rolls.
 
-![Version](https://img.shields.io/badge/version-1.0.106-blue)
+![Version](https://img.shields.io/badge/version-1.0.107-blue)
 ![Foundry](https://img.shields.io/badge/Foundry-v11--v13-orange)
 ![System](https://img.shields.io/badge/System-D&D%205e-red)
 
@@ -202,7 +202,13 @@ The module uses ES6 modules and is compatible with Foundry VTT v11-v13.
 
 ## 📝 Changelog
 
-### v1.0.106 (Latest)
+### v1.0.107 (Latest)
+- ✅ Added configurable proxy URL setting
+- ✅ Support for hosted proxy servers (Railway, Render, etc.)
+- ✅ Dynamic proxy URL configuration instead of hardcoded localhost
+- ✅ Settings integration for proxy URL management
+
+### v1.0.106
 - ✅ Added proxy server for live D&D Beyond API access
 - ✅ Automatic proxy detection and fallback
 - ✅ Improved error handling and user messages

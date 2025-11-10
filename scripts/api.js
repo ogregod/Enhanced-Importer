@@ -6,11 +6,20 @@
  */
 export class DnDBeyondEnhancedAPI {
   constructor() {
-    this.proxyUrl = 'http://localhost:3001';
     this.proxyAvailable = null; // null = not checked, true/false = result
     this.sourceCache = null;
     this.itemCache = null;
     this.spellCache = null;
+  }
+
+  /**
+   * Get the proxy URL from settings
+   * @returns {string} The proxy URL
+   * @private
+   */
+  _getProxyUrl() {
+    const url = game.settings.get('dnd-beyond-enhanced-importer', 'proxyUrl');
+    return url || 'http://localhost:3001'; // Fallback to localhost for development
   }
 
   /**
@@ -33,7 +42,7 @@ export class DnDBeyondEnhancedAPI {
     }
 
     try {
-      const response = await fetch(`${this.proxyUrl}/health`, {
+      const response = await fetch(`${this._getProxyUrl()}/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(2000) // 2 second timeout
       });
@@ -72,7 +81,7 @@ export class DnDBeyondEnhancedAPI {
     }
 
     try {
-      const response = await fetch(`${this.proxyUrl}/api/validate-cookie`, {
+      const response = await fetch(`${this._getProxyUrl()}/api/validate-cookie`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -106,7 +115,7 @@ export class DnDBeyondEnhancedAPI {
       throw new Error('No Cobalt cookie available');
     }
 
-    const response = await fetch(`${this.proxyUrl}/api/character${endpoint}`, {
+    const response = await fetch(`${this._getProxyUrl()}/api/character${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -132,7 +141,7 @@ export class DnDBeyondEnhancedAPI {
   async _makeContentProxyRequest(endpoint, cookie = null) {
     const cobaltCookie = cookie || this._getCobaltCookie();
 
-    const response = await fetch(`${this.proxyUrl}/api/content${endpoint}`, {
+    const response = await fetch(`${this._getProxyUrl()}/api/content${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
