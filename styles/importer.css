@@ -6,9 +6,8 @@
 }
 
 #ddb-import-dialog .window-content {
-  background: url("../background.svg") no-repeat center center;
-  background-size: cover;
   padding: 0;
+  background-color: #f5f5f0;
 }
 
 #ddb-import-dialog .dialog-content {

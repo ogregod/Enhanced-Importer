@@ -27,7 +27,8 @@ export class ImportDialog extends foundry.applications.api.HandlebarsApplication
       width: 600,
       height: 700
     },
-    actions: {}
+    actions: {},
+    classes: ['ddb-importer']
   };
 
   static PARTS = {
@@ -74,18 +75,16 @@ export class ImportDialog extends foundry.applications.api.HandlebarsApplication
   _onRender(context, options) {
     super._onRender(context, options);
     const html = $(this.element);
-    
-    // Initialize tabs using Foundry's built-in Tabs instead of TabsV2
-    const tabs = new foundry.applications.api.Tabs({
-      navSelector: ".tabs",
-      contentSelector: ".content",
-      initial: "sources",
-      callback: (event, html, tab) => {
-        this.activeTab = tab;
-      }
+
+    // Initialize tabs manually for ApplicationV2
+    this._activateTab(this.activeTab);
+
+    // Tab click handlers
+    html.find('.tabs a[data-tab]').on('click', (event) => {
+      event.preventDefault();
+      const tab = event.currentTarget.dataset.tab;
+      this._activateTab(tab);
     });
-    
-    tabs.bind(html[0]);
     
     // Toggle all sources button
     html.find('.toggle-all-sources').click(event => {
@@ -262,20 +261,38 @@ export class ImportDialog extends foundry.applications.api.HandlebarsApplication
    */
   _updateButtonState(html) {
     const importButton = html.find('.import-button');
-    
+
     if (this.selectedSources.length === 0) {
       importButton.prop('disabled', true);
     } else {
       importButton.prop('disabled', false);
     }
-    
+
     // Update toggle all button text
     const toggleAllButton = html.find('.toggle-all-sources');
     const allSelected = this.selectedSources.length === this.sources.length;
-    
+
     toggleAllButton.text(allSelected ? 'Deselect All' : 'Select All');
   }
-  
+
+  /**
+   * Activate a specific tab
+   * @param {string} tabName - The name of the tab to activate
+   * @private
+   */
+  _activateTab(tabName) {
+    this.activeTab = tabName;
+    const html = $(this.element);
+
+    // Update tab navigation
+    html.find('.tabs a[data-tab]').removeClass('active');
+    html.find(`.tabs a[data-tab="${tabName}"]`).addClass('active');
+
+    // Update tab content
+    html.find('.tab[data-tab]').removeClass('active').hide();
+    html.find(`.tab[data-tab="${tabName}"]`).addClass('active').show();
+  }
+
   /**
    * Show import results
    * @param {object} results - The import results
