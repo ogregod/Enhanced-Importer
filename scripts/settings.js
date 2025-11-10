@@ -108,7 +108,7 @@ async function validateCobaltCookie(cookie) {
 /**
  * Dialog for configuring importer settings
  */
-class ImporterConfigDialog extends foundry.applications.api.ApplicationV2 {
+class ImporterConfigDialog extends foundry.applications.api.HandlebarsApplicationMixin(foundry.applications.api.ApplicationV2) {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'ddb-importer-config',
@@ -145,7 +145,7 @@ class ImporterConfigDialog extends foundry.applications.api.ApplicationV2 {
 /**
  * Dialog for showing help and instructions
  */
-class ImporterHelpDialog extends foundry.applications.api.ApplicationV2 {
+class ImporterHelpDialog extends foundry.applications.api.HandlebarsApplicationMixin(foundry.applications.api.ApplicationV2) {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'ddb-importer-help',

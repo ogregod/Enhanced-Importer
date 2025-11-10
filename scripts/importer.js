@@ -464,7 +464,7 @@ export class EnhancedImporter {
 /**
  * Progress bar class for showing import progress
  */
-class Progress extends foundry.applications.api.ApplicationV2 {
+class Progress extends foundry.applications.api.HandlebarsApplicationMixin(foundry.applications.api.ApplicationV2) {
   constructor(options) {
     super(options);
     this.pct = options.pct || 0;

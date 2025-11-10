@@ -6,7 +6,7 @@ import { HomebrewImporter } from './homebrew.js';
 /**
  * Dialog for selecting sources to import
  */
-export class ImportDialog extends foundry.applications.api.ApplicationV2 {
+export class ImportDialog extends foundry.applications.api.HandlebarsApplicationMixin(foundry.applications.api.ApplicationV2) {
   constructor(importer) {
     super();
     this.importer = importer;
