@@ -37,8 +37,8 @@
     }
   ],
   "url": "https://github.com/ogregod/Enhanced-Importer",
-  "manifest": "https://github.com/ogregod/Enhanced-Importer/releases/download/v1.0.0/module.json",
-  "download": "https://github.com/ogregod/Enhanced-Importer/releases/download/v1.0.0/dnd-beyond-enhanced-importer.zip",
+  "manifest": "https://raw.githubusercontent.com/ogregod/Enhanced-Importer/main/module.json",
+  "download": "https://github.com/ogregod/Enhanced-Importer/archive/refs/heads/main.zip",
   "license": "LICENSE",
   "readme": "README.md",
   "bugs": "https://github.com/ogregod/Enhanced-Importer/issues",
