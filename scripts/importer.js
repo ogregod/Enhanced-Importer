@@ -473,17 +473,24 @@ class Progress extends foundry.applications.api.HandlebarsApplicationMixin(found
     this.total = options.total || 0;
     this.animate = options.animate !== undefined ? options.animate : true;
   }
-  
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: 'ddb-import-progress',
-      template: 'modules/dnd-beyond-enhanced-importer/templates/progress.html',
-      title: 'Importing...',
+
+  static DEFAULT_OPTIONS = {
+    id: 'ddb-import-progress',
+    window: {
+      title: 'Importing...'
+    },
+    position: {
       width: 400
-    });
-  }
-  
-  getData() {
+    }
+  };
+
+  static PARTS = {
+    progress: {
+      template: 'modules/dnd-beyond-enhanced-importer/templates/progress.html'
+    }
+  };
+
+  _prepareContext(options) {
     return {
       pct: this.pct,
       label: this.label,

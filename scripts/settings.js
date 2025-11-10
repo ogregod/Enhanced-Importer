@@ -109,35 +109,45 @@ async function validateCobaltCookie(cookie) {
  * Dialog for configuring importer settings
  */
 class ImporterConfigDialog extends foundry.applications.api.HandlebarsApplicationMixin(foundry.applications.api.ApplicationV2) {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: 'ddb-importer-config',
-      title: 'D&D Beyond Importer Configuration',
-      template: 'modules/dnd-beyond-enhanced-importer/templates/importer-config.html',
-      width: 500,
-      closeOnSubmit: true
-    });
-  }
-  
-  getData() {
+  static DEFAULT_OPTIONS = {
+    id: 'ddb-importer-config',
+    window: {
+      title: 'D&D Beyond Importer Configuration'
+    },
+    position: {
+      width: 500
+    },
+    form: {
+      closeOnSubmit: true,
+      handler: ImporterConfigDialog.#onSubmit
+    }
+  };
+
+  static PARTS = {
+    form: {
+      template: 'modules/dnd-beyond-enhanced-importer/templates/importer-config.html'
+    }
+  };
+
+  _prepareContext(options) {
     // Get the current import configuration
     const importConfig = game.settings.get('dnd-beyond-enhanced-importer', 'importConfig');
-    
+
     return {
       importConfig: importConfig
     };
   }
-  
-  async _updateObject(event, formData) {
+
+  static async #onSubmit(event, form, formData) {
     // Save the form data to the settings
     await game.settings.set('dnd-beyond-enhanced-importer', 'importConfig', {
-      importItems: formData.importItems,
-      importSpells: formData.importSpells,
-      createFolders: formData.createFolders,
-      folderStructure: formData.folderStructure,
-      overwriteExisting: formData.overwriteExisting
+      importItems: formData.object.importItems,
+      importSpells: formData.object.importSpells,
+      createFolders: formData.object.createFolders,
+      folderStructure: formData.object.folderStructure,
+      overwriteExisting: formData.object.overwriteExisting
     });
-    
+
     ui.notifications.info('Importer configuration updated.');
   }
 }
@@ -146,24 +156,25 @@ class ImporterConfigDialog extends foundry.applications.api.HandlebarsApplicatio
  * Dialog for showing help and instructions
  */
 class ImporterHelpDialog extends foundry.applications.api.HandlebarsApplicationMixin(foundry.applications.api.ApplicationV2) {
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: 'ddb-importer-help',
+  static DEFAULT_OPTIONS = {
+    id: 'ddb-importer-help',
+    window: {
       title: 'D&D Beyond Enhanced Importer - Help',
-      template: 'modules/dnd-beyond-enhanced-importer/templates/importer-help.html',
+      resizable: true
+    },
+    position: {
       width: 600,
-      height: 700,
-      resizable: true,
-      closeOnSubmit: false,
-      submitOnClose: false
-    });
-  }
-  
-  getData() {
+      height: 700
+    }
+  };
+
+  static PARTS = {
+    help: {
+      template: 'modules/dnd-beyond-enhanced-importer/templates/importer-help.html'
+    }
+  };
+
+  _prepareContext(options) {
     return {};
-  }
-  
-  async _updateObject(event, formData) {
-    // This dialog doesn't update anything
   }
 }

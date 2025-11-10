@@ -15,44 +15,51 @@ export class ImportDialog extends foundry.applications.api.HandlebarsApplication
     this.loading = true;
     this.activeTab = 'sources'; // Default tab
   }
-  
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      id: 'ddb-import-dialog',
+
+  static DEFAULT_OPTIONS = {
+    id: 'ddb-import-dialog',
+    tag: 'div',
+    window: {
       title: 'D&D Beyond Enhanced Importer',
-      template: 'modules/dnd-beyond-enhanced-importer/templates/import-dialog.html',
+      resizable: true
+    },
+    position: {
       width: 600,
-      height: 700,
-      resizable: true,
-      closeOnSubmit: false,
-      tabs: [{ navSelector: ".tabs", contentSelector: ".content", initial: "sources" }]
-    });
-  }
+      height: 700
+    },
+    actions: {}
+  };
+
+  static PARTS = {
+    form: {
+      template: 'modules/dnd-beyond-enhanced-importer/templates/import-dialog.html'
+    }
+  };
   
-  async getData() {
+  async _prepareContext(options) {
     // Load sources if we don't have them yet
     if (this.loading) {
       try {
         this.sources = await this.importer.fetchSources();
-        
+
         // Get previously selected sources from settings
         const savedSources = game.settings.get('dnd-beyond-enhanced-importer', 'importSources');
-        
+
         // Initialize selected sources from saved settings or select all by default
         this.selectedSources = Object.keys(savedSources).length > 0
           ? this.sources.filter(s => savedSources[s.id]).map(s => s.id)
           : this.sources.map(s => s.id);
-        
+
         this.loading = false;
       } catch (error) {
         console.error('D&D Beyond Enhanced Importer | Error loading sources:', error);
         ui.notifications.error('Error loading sources. Please check the console for details.');
       }
     }
-    
+
     // Get import configuration
     const importConfig = game.settings.get('dnd-beyond-enhanced-importer', 'importConfig');
-    
+
     return {
       sources: this.sources,
       selectedSources: this.selectedSources,
@@ -63,9 +70,10 @@ export class ImportDialog extends foundry.applications.api.HandlebarsApplication
         : 'Never'
     };
   }
-  
-  activateListeners(html) {
-    super.activateListeners(html);
+
+  _onRender(context, options) {
+    super._onRender(context, options);
+    const html = $(this.element);
     
     // Initialize tabs using Foundry's built-in Tabs instead of TabsV2
     const tabs = new foundry.applications.api.Tabs({
