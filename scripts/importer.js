@@ -60,6 +60,7 @@ export class EnhancedImporter {
         <input type="text" id="cobalt-cookie" name="cobaltCookie" placeholder="Paste your Cobalt cookie here">
       </div>
       <p class="notes"><strong>Note:</strong> Your Cobalt cookie is only stored locally on your Foundry server and is used solely for API authentication with D&D Beyond. It is never shared with anyone else.</p>
+      <p class="notes"><strong>Note:</strong> Due to browser security restrictions (CORS), direct API access may be limited. This module will use its local database for imports.</p>
     `;
     
     new Dialog({
@@ -113,7 +114,18 @@ export class EnhancedImporter {
   async fetchSources() {
     try {
       ui.notifications.info('Fetching sources from D&D Beyond...');
-      const sources = await this.api.getSources();
+      
+      let sources = [];
+      try {
+        sources = await this.api.getSources();
+      } catch (error) {
+        console.error('D&D Beyond Enhanced Importer | Error fetching sources from API:', error);
+        
+        // If API fails, try loading from the local database
+        ui.notifications.warn('Could not connect to D&D Beyond API. Using local database.');
+        const response = await fetch('modules/dnd-beyond-enhanced-importer/database/sources.json');
+        sources = await response.json();
+      }
       
       // Sort by name
       sources.sort((a, b) => a.name.localeCompare(b.name));
@@ -155,7 +167,16 @@ export class EnhancedImporter {
       };
       
       // Get all sources for mapping names
-      const sources = await this.api.getSources();
+      let sources = [];
+      try {
+        sources = await this.api.getSources();
+      } catch (error) {
+        console.error('D&D Beyond Enhanced Importer | Error fetching sources from API:', error);
+        
+        // If API fails, try loading from the local database
+        const response = await fetch('modules/dnd-beyond-enhanced-importer/database/sources.json');
+        sources = await response.json();
+      }
       
       // Create folders if needed
       const folders = {};
@@ -204,7 +225,18 @@ export class EnhancedImporter {
       // Start with items if selected
       if (options.importItems) {
         ui.notifications.info('Fetching items from D&D Beyond...');
-        const items = await this.api.getItems();
+        
+        let items = [];
+        try {
+          items = await this.api.getItems();
+        } catch (error) {
+          console.error('D&D Beyond Enhanced Importer | Error fetching items from API:', error);
+          
+          // If API fails, try loading from the local database
+          ui.notifications.warn('Could not connect to D&D Beyond API. Using local database.');
+          const response = await fetch('modules/dnd-beyond-enhanced-importer/database/items.json');
+          items = await response.json();
+        }
         
         // Filter to only selected sources
         const filteredItems = items.filter(item => selectedSources.includes(item.sourceId));
@@ -230,7 +262,13 @@ export class EnhancedImporter {
             itemProgress.render();
             
             // Get detailed item information
-            const itemDetails = await this.api.getItemDetails(ddbItem.id);
+            let itemDetails;
+            try {
+              itemDetails = await this.api.getItemDetails(ddbItem.id);
+            } catch (error) {
+              console.warn(`D&D Beyond Enhanced Importer | Error getting item details for ${ddbItem.name}, using basic item:`, error);
+              itemDetails = ddbItem;
+            }
             
             // Convert to Foundry format
             const foundryItem = await convertDDBItemToFoundry(itemDetails, sources);
@@ -302,7 +340,18 @@ export class EnhancedImporter {
       // Import spells if selected
       if (options.importSpells) {
         ui.notifications.info('Fetching spells from D&D Beyond...');
-        const spells = await this.api.getSpells();
+        
+        let spells = [];
+        try {
+          spells = await this.api.getSpells();
+        } catch (error) {
+          console.error('D&D Beyond Enhanced Importer | Error fetching spells from API:', error);
+          
+          // If API fails, try loading from the local database
+          ui.notifications.warn('Could not connect to D&D Beyond API. Using local database.');
+          const response = await fetch('modules/dnd-beyond-enhanced-importer/database/spells.json');
+          spells = await response.json();
+        }
         
         // Filter to only selected sources
         const filteredSpells = spells.filter(spell => selectedSources.includes(spell.sourceId));
@@ -328,7 +377,13 @@ export class EnhancedImporter {
             spellProgress.render();
             
             // Get detailed spell information
-            const spellDetails = await this.api.getSpellDetails(ddbSpell.id);
+            let spellDetails;
+            try {
+              spellDetails = await this.api.getSpellDetails(ddbSpell.id);
+            } catch (error) {
+              console.warn(`D&D Beyond Enhanced Importer | Error getting spell details for ${ddbSpell.name}, using basic spell:`, error);
+              spellDetails = ddbSpell;
+            }
             
             // Convert to Foundry format
             const foundrySpell = await convertDDBSpellToFoundry(spellDetails, sources);
@@ -409,7 +464,7 @@ export class EnhancedImporter {
 /**
  * Progress bar class for showing import progress
  */
-class Progress extends Application {
+class Progress extends foundry.applications.api.ApplicationV2 {
   constructor(options) {
     super(options);
     this.pct = options.pct || 0;
@@ -420,7 +475,7 @@ class Progress extends Application {
   }
   
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'ddb-import-progress',
       template: 'modules/dnd-beyond-enhanced-importer/templates/progress.html',
       title: 'Importing...',

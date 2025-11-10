@@ -21,7 +21,8 @@ async function preloadTemplates() {
   ];
   
   try {
-    return foundry.applications.handlebars.loadTemplates(templatePaths);
+    // Use the modern approach for loading templates
+    return loadTemplates(templatePaths);
   } catch (error) {
     console.error('D&D Beyond Enhanced Importer | Error preloading templates:', error);
   }
@@ -118,6 +119,9 @@ export class DnDBeyondEnhancedImporter {
     }
     
     console.log('D&D Beyond Enhanced Importer | Initialization complete');
+    
+    // Display a notification about CORS limitations
+    ui.notifications.warn("D&D Beyond Enhanced Importer: Due to browser security restrictions (CORS), direct API access is limited. Using local database for imports.", {permanent: true});
   }
   
   /**
@@ -154,6 +158,7 @@ export class DnDBeyondEnhancedImporter {
     const content = `
       <p>The D&D Beyond Enhanced Importer requires a Cobalt cookie from D&D Beyond to access your purchased content.</p>
       <p>Please go to Settings > Module Settings > D&D Beyond Enhanced Importer to set up your Cobalt cookie.</p>
+      <p><strong>Note:</strong> Due to browser security restrictions (CORS), direct API access may be limited. This module will use its local database for imports.</p>
     `;
     
     new Dialog({

@@ -6,7 +6,7 @@ import { HomebrewImporter } from './homebrew.js';
 /**
  * Dialog for selecting sources to import
  */
-export class ImportDialog extends Application {
+export class ImportDialog extends foundry.applications.api.ApplicationV2 {
   constructor(importer) {
     super();
     this.importer = importer;
@@ -17,7 +17,7 @@ export class ImportDialog extends Application {
   }
   
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'ddb-import-dialog',
       title: 'D&D Beyond Enhanced Importer',
       template: 'modules/dnd-beyond-enhanced-importer/templates/import-dialog.html',
@@ -67,8 +67,8 @@ export class ImportDialog extends Application {
   activateListeners(html) {
     super.activateListeners(html);
     
-    // Initialize tabs
-    const tabs = new TabsV2({
+    // Initialize tabs using Foundry's built-in Tabs instead of TabsV2
+    const tabs = new foundry.applications.api.Tabs({
       navSelector: ".tabs",
       contentSelector: ".content",
       initial: "sources",

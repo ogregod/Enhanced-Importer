@@ -6,7 +6,7 @@
 }
 
 #ddb-import-dialog .window-content {
-  background: url("../artwork/background.jpg") no-repeat center center;
+  background: url("../background.svg") no-repeat center center;
   background-size: cover;
   padding: 0;
 }
@@ -277,4 +277,34 @@
 .ddb-dialog ul {
   margin: 10px 0;
   padding-left: 20px;
+}
+
+/* Tab styles */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #782e22;
+  margin-bottom: 10px;
+}
+
+.tabs .item {
+  padding: 5px 10px;
+  margin-right: 5px;
+  border: 1px solid #782e22;
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  cursor: pointer;
+  background-color: rgba(232, 231, 223, 0.8);
+}
+
+.tabs .item.active {
+  background-color: #782e22;
+  color: white;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
 }

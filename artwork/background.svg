@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8a3324;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#4b6380;stop-opacity:0.3"/>
+    </linearGradient>
+    <pattern id="pattern" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M25,0 L50,25 L25,50 L0,25 Z" fill="none" stroke="#782e22" stroke-width="0.5" opacity="0.2"/>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#bg)"/>
+  <rect width="100%" height="100%" fill="url(#pattern)"/>
+  <g opacity="0.1">
+    <path d="M200,300 C200,250 250,200 300,200 S400,250 400,300 S350,400 300,400 S200,350 200,300 Z" fill="#782e22"/>
+    <path d="M400,200 C400,150 450,100 500,100 S600,150 600,200 S550,300 500,300 S400,250 400,200 Z" fill="#782e22"/>
+    <path d="M100,400 C100,350 150,300 200,300 S300,350 300,400 S250,500 200,500 S100,450 100,400 Z" fill="#4b6380"/>
+    <path d="M500,400 C500,350 550,300 600,300 S700,350 700,400 S650,500 600,500 S500,450 500,400 Z" fill="#4b6380"/>
+  </g>
+</svg>

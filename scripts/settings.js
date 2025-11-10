@@ -108,9 +108,9 @@ async function validateCobaltCookie(cookie) {
 /**
  * Dialog for configuring importer settings
  */
-class ImporterConfigDialog extends FormApplication {
+class ImporterConfigDialog extends foundry.applications.api.ApplicationV2 {
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'ddb-importer-config',
       title: 'D&D Beyond Importer Configuration',
       template: 'modules/dnd-beyond-enhanced-importer/templates/importer-config.html',
@@ -145,9 +145,9 @@ class ImporterConfigDialog extends FormApplication {
 /**
  * Dialog for showing help and instructions
  */
-class ImporterHelpDialog extends FormApplication {
+class ImporterHelpDialog extends foundry.applications.api.ApplicationV2 {
   static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
+    return foundry.utils.mergeObject(super.defaultOptions, {
       id: 'ddb-importer-help',
       title: 'D&D Beyond Enhanced Importer - Help',
       template: 'modules/dnd-beyond-enhanced-importer/templates/importer-help.html',
