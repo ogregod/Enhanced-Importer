@@ -61,37 +61,10 @@ export class DnDBeyondEnhancedAPI {
    * @private
    */
   async _makeRequest(endpoint, cookie = null) {
-    const cobaltCookie = cookie || this._getCobaltCookie();
-    
-    if (!cobaltCookie) {
-      throw new Error('No Cobalt cookie available. Please configure your Cobalt cookie in the module settings.');
-    }
-    
-    // In a browser environment, this will likely be blocked by CORS
-    try {
-      const url = `${this.baseUrl}${endpoint}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Cookie': `CobaltSession=${cobaltCookie}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      return response;
-    } catch (error) {
-      console.error('D&D Beyond Enhanced Importer | API request failed:', error);
-      
-      // If we're using the fallback database, throw a special error
-      if (this.useFallbackDatabase) {
-        const corsError = new Error('CORS restriction detected. Using fallback database.');
-        corsError.name = 'CORSError';
-        throw corsError;
-      }
-      
-      throw error;
-    }
+    // Browser CORS will always block these requests, so use fallback immediately
+    const corsError = new Error('CORS restriction detected. Using fallback database.');
+    corsError.name = 'CORSError';
+    throw corsError;
   }
   
   /**
@@ -102,40 +75,10 @@ export class DnDBeyondEnhancedAPI {
    * @private
    */
   async _makeContentRequest(endpoint, cookie = null) {
-    const cobaltCookie = cookie || this._getCobaltCookie();
-    
-    if (!cobaltCookie) {
-      throw new Error('No Cobalt cookie available. Please configure your Cobalt cookie in the module settings.');
-    }
-    
-    try {
-      const url = `${this.contentUrl}${endpoint}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Cookie': `CobaltSession=${cobaltCookie}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`D&D Beyond API error: ${response.status} ${response.statusText}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('D&D Beyond Enhanced Importer | Content API request failed:', error);
-      
-      // If we're using the fallback database, throw a special error
-      if (this.useFallbackDatabase) {
-        const corsError = new Error('CORS restriction detected. Using fallback database.');
-        corsError.name = 'CORSError';
-        throw corsError;
-      }
-      
-      throw error;
-    }
+    // Browser CORS will always block these requests, so use fallback immediately
+    const corsError = new Error('CORS restriction detected. Using fallback database.');
+    corsError.name = 'CORSError';
+    throw corsError;
   }
   
   /**
