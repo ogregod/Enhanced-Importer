@@ -21,7 +21,7 @@ async function preloadTemplates() {
   ];
   
   try {
-    return loadTemplates(templatePaths);
+    return foundry.applications.handlebars.loadTemplates(templatePaths);
   } catch (error) {
     console.error('D&D Beyond Enhanced Importer | Error preloading templates:', error);
   }
