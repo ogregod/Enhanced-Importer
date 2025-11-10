@@ -35,7 +35,7 @@ export class DnDBeyondEnhancedImporter {
   static ID = 'dnd-beyond-enhanced-importer';
   static API = null;
   static Importer = null;
-  
+
   /**
    * Initialize the module
    */
@@ -43,7 +43,10 @@ export class DnDBeyondEnhancedImporter {
     console.log('===========================================');
     console.log('D&D Beyond Enhanced Importer | Initializing');
     console.log('===========================================');
-    
+
+    // Register Handlebars helpers
+    this._registerHandlebarsHelpers();
+
     // Register module settings
     try {
       registerSettings();
@@ -154,13 +157,13 @@ export class DnDBeyondEnhancedImporter {
   static _suggestCobaltSetup() {
     // Only show to GMs
     if (!game.user.isGM) return;
-    
+
     const content = `
       <p>The D&D Beyond Enhanced Importer requires a Cobalt cookie from D&D Beyond to access your purchased content.</p>
       <p>Please go to Settings > Module Settings > D&D Beyond Enhanced Importer to set up your Cobalt cookie.</p>
       <p><strong>Note:</strong> Due to browser security restrictions (CORS), direct API access may be limited. This module will use its local database for imports.</p>
     `;
-    
+
     new Dialog({
       title: "D&D Beyond Enhanced Importer Setup",
       content: content,
@@ -183,6 +186,24 @@ export class DnDBeyondEnhancedImporter {
       },
       default: "setup"
     }).render(true);
+  }
+
+  /**
+   * Register custom Handlebars helpers for templates
+   * @private
+   */
+  static _registerHandlebarsHelpers() {
+    // Helper to check if an array includes a value
+    Handlebars.registerHelper('includes', function(array, value) {
+      return array && array.includes(value);
+    });
+
+    // Helper to check if two values are equal
+    Handlebars.registerHelper('eq', function(a, b) {
+      return a === b;
+    });
+
+    console.log('D&D Beyond Enhanced Importer | Handlebars helpers registered');
   }
 }
 

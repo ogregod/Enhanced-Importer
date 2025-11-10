@@ -1,6 +1,6 @@
 {
   "name": "dnd-beyond-enhanced-importer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Import all your purchased D&D Beyond content with enhanced functionality for Foundry VTT",
   "main": "scripts/main.js",
   "scripts": {
