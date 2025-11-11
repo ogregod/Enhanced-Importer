@@ -2,7 +2,7 @@
 
 Import all your purchased D&D Beyond content directly into Foundry VTT with full functionality. Items and spells come properly configured with pricing, templates, effects, and rolls.
 
-![Version](https://img.shields.io/badge/version-1.0.107-blue)
+![Version](https://img.shields.io/badge/version-1.0.108-blue)
 ![Foundry](https://img.shields.io/badge/Foundry-v11--v13-orange)
 ![System](https://img.shields.io/badge/System-D&D%205e-red)
 
