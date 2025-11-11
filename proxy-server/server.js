@@ -32,8 +32,10 @@ const PORT = process.env.PORT || 3001;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // D&D Beyond API endpoints
+const DDB_AUTH_SERVICE = 'https://auth-service.dndbeyond.com/v1';
 const DDB_CHARACTER_SERVICE = 'https://character-service.dndbeyond.com/character/v5';
-const DDB_CONTENT_API = 'https://www.dndbeyond.com/api';
+const DDB_GAME_DATA_API = 'https://www.dndbeyond.com/api/game-data';
+const DDB_CAMPAIGN_API = 'https://www.dndbeyond.com/api/campaign';
 
 // Simple in-memory cache for anonymous data (not user-specific)
 const cache = new Map();
@@ -233,14 +235,29 @@ app.post('/api/validate-cookie', validateCobaltCookie, async (req, res) => {
   const { cobaltCookie } = req.body;
 
   try {
-    const data = await makeAuthenticatedRequest(
-      `${DDB_CHARACTER_SERVICE}/user-entity`,
-      cobaltCookie
-    );
+    // Exchange Cobalt cookie for bearer token using D&D Beyond's auth service
+    const authResponse = await fetch(`${DDB_AUTH_SERVICE}/cobalt-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Foundry-VTT-DDB-Importer/1.0'
+      },
+      body: JSON.stringify({ CobaltSession: cobaltCookie })
+    });
+
+    if (!authResponse.ok) {
+      throw new Error('Invalid Cobalt cookie');
+    }
+
+    const authData = await authResponse.json();
+
+    if (!authData.token || authData.token.length === 0) {
+      throw new Error('No token received');
+    }
 
     res.json({
       valid: true,
-      username: data.username || 'Unknown'
+      token: authData.token
     });
 
   } catch (error) {
@@ -278,29 +295,63 @@ app.post('/api/character/*', validateCobaltCookie, async (req, res) => {
 });
 
 /**
- * Proxy Content API requests (with caching for anonymous data)
+ * Proxy Game Data API requests (items, spells, sources)
  * Route: POST /api/content/*
  */
 app.post('/api/content/*', async (req, res) => {
   const { cobaltCookie } = req.body;
   const endpoint = req.path.replace('/api/content', '');
 
-  // Check cache first for public data (if no cookie provided)
-  if (!cobaltCookie) {
-    const cacheKey = `content:${endpoint}`;
-    const cached = getCached(cacheKey);
-    if (cached) {
-      return res.json(cached);
-    }
-  }
-
   try {
-    const url = `${DDB_CONTENT_API}${endpoint}`;
+    let url;
+    // Map endpoints to correct D&D Beyond game-data URLs
+    if (endpoint === '/items') {
+      url = `${DDB_GAME_DATA_API}/items`;
+    } else if (endpoint === '/spells') {
+      url = `${DDB_GAME_DATA_API}/spells`;
+    } else if (endpoint === '/sources') {
+      url = `${DDB_GAME_DATA_API}/sources`;
+    } else {
+      // Generic game-data endpoint
+      url = `${DDB_GAME_DATA_API}${endpoint}`;
+    }
 
     let data;
     if (cobaltCookie) {
-      // Authenticated request
-      data = await makeAuthenticatedRequest(url, cobaltCookie);
+      // Authenticated request - get bearer token first
+      const authResponse = await fetch(`${DDB_AUTH_SERVICE}/cobalt-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Foundry-VTT-DDB-Importer/1.0'
+        },
+        body: JSON.stringify({ CobaltSession: cobaltCookie })
+      });
+
+      if (!authResponse.ok) {
+        throw new Error('Authentication failed');
+      }
+
+      const authData = await authResponse.json();
+
+      if (!authData.token) {
+        throw new Error('No token received');
+      }
+
+      // Make authenticated request with bearer token
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${authData.token}`,
+          'User-Agent': 'Foundry-VTT-DDB-Importer/1.0',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`D&D Beyond API error: ${response.status} ${response.statusText}`);
+      }
+
+      data = await response.json();
     } else {
       // Anonymous request (public data)
       const response = await fetch(url, {
@@ -311,19 +362,16 @@ app.post('/api/content/*', async (req, res) => {
       });
 
       if (!response.ok) {
-        throw new Error(`D&D Beyond API error: ${response.status}`);
+        throw new Error(`D&D Beyond API error: ${response.status} ${response.statusText}`);
       }
 
       data = await response.json();
-
-      // Cache anonymous data
-      setCache(`content:${endpoint}`, data);
     }
 
     res.json(data);
 
   } catch (error) {
-    console.error(`Content API error (${endpoint}):`, error.message);
+    console.error(`Game Data API error (${endpoint}):`, error.message);
     res.status(error.message.includes('timeout') ? 504 : 500).json({
       error: 'API request failed',
       message: error.message
