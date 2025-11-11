@@ -165,7 +165,7 @@ async function makeAuthenticatedRequest(url, cobaltCookie, options = {}) {
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    version: '1.0.107',
+    version: '1.0.108',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: process.memoryUsage(),
@@ -192,7 +192,7 @@ app.get('/stats', (req, res) => {
     cacheSize: cache.size,
     uptime: process.uptime(),
     memory: process.memoryUsage(),
-    version: '1.0.107'
+    version: '1.0.108'
   });
 });
 
