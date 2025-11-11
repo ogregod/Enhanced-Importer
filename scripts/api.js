@@ -178,6 +178,7 @@ export class DnDBeyondEnhancedAPI {
 
   /**
    * Get sources (sourcebooks) from D&D Beyond
+   * NOTE: D&D Beyond doesn't have a sources API endpoint, so we use local database
    * @returns {Promise<Array>} Array of sources
    */
   async getSources() {
@@ -186,29 +187,11 @@ export class DnDBeyondEnhancedAPI {
       return this.sourceCache;
     }
 
-    const proxyAvailable = await this.checkProxyAvailability();
-
-    if (!proxyAvailable) {
-      // Fall back to local database
-      console.log('D&D Beyond Enhanced Importer | Loading sources from local database');
-      const response = await fetch('modules/dnd-beyond-enhanced-importer/database/sources.json');
-      this.sourceCache = await response.json();
-      return this.sourceCache;
-    }
-
-    try {
-      // Try to get sources from D&D Beyond via proxy
-      const data = await this._makeContentProxyRequest('/sources');
-      this.sourceCache = data;
-      return data;
-    } catch (error) {
-      console.warn('D&D Beyond Enhanced Importer | API failed, using local database:', error.message);
-
-      // Fall back to local database
-      const response = await fetch('modules/dnd-beyond-enhanced-importer/database/sources.json');
-      this.sourceCache = await response.json();
-      return this.sourceCache;
-    }
+    // D&D Beyond doesn't have a sources API endpoint, use local database
+    console.log('D&D Beyond Enhanced Importer | Loading sources from local database');
+    const response = await fetch('modules/dnd-beyond-enhanced-importer/database/sources.json');
+    this.sourceCache = await response.json();
+    return this.sourceCache;
   }
 
   /**
