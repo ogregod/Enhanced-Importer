@@ -3,11 +3,15 @@
 /* Main import dialog */
 #ddb-import-dialog {
   min-height: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 #ddb-import-dialog .window-content {
   padding: 0;
   background-color: #f5f5f0;
+  max-height: calc(80vh - 60px);
+  overflow-y: auto;
 }
 
 #ddb-import-dialog .dialog-content {
@@ -15,7 +19,8 @@
   flex-direction: column;
   height: 100%;
   padding: 10px;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.95);
+  color: #1c1c1c;
 }
 
 #ddb-import-dialog .title-bar {
@@ -227,8 +232,15 @@
 
 /* Cobalt cookie setup dialog */
 .cobalt-setup-dialog {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: #ffffff;
   padding: 15px;
+  color: #1c1c1c;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.cobalt-setup-dialog h3, .cobalt-setup-dialog h4, .cobalt-setup-dialog p, .cobalt-setup-dialog li {
+  color: #1c1c1c;
 }
 
 .cobalt-setup-dialog ol {
@@ -240,10 +252,21 @@
   margin-bottom: 15px;
 }
 
+.cobalt-setup-dialog .form-group label {
+  color: #1c1c1c;
+  font-weight: bold;
+}
+
+.cobalt-setup-dialog input[type="text"] {
+  background-color: #ffffff;
+  color: #1c1c1c;
+  border: 1px solid #782e22;
+}
+
 .cobalt-setup-dialog .notes {
   font-size: 0.9em;
   font-style: italic;
-  color: #606060;
+  color: #404040;
   margin-top: 15px;
 }
 
