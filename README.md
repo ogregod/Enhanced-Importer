@@ -11,6 +11,7 @@ Import all your purchased D&D Beyond content directly into Foundry VTT with full
 ## ✨ Features
 
 - ✅ **Import Personal Content** - Access everything you own on D&D Beyond
+- ✅ **Hosted Proxy Included** - Pre-configured cloud proxy, no downloads required
 - ✅ **Automatic Organization** - Organize by sourcebook or item type
 - ✅ **Homebrew Support** - Import custom homebrew content
 - ✅ **Progress Tracking** - Visual progress bars for large imports
@@ -31,49 +32,7 @@ Import all your purchased D&D Beyond content directly into Foundry VTT with full
    ```
 4. Click **Install**
 
-### Step 2: Install the Proxy Server (Required for Live Imports)
-
-**Why?** Browser security (CORS) blocks direct D&D Beyond API access. The proxy server runs on your computer and enables automatic imports of your purchased content.
-
-#### Windows
-1. Download `ddb-proxy-windows.exe` from [Releases](https://github.com/ogregod/Enhanced-Importer/releases)
-2. Double-click to run
-3. Allow through Windows Firewall if prompted
-
-#### Mac
-1. Download `ddb-proxy-macos` from [Releases](https://github.com/ogregod/Enhanced-Importer/releases)
-2. Open Terminal, navigate to the file, and run:
-   ```bash
-   chmod +x ddb-proxy-macos
-   ./ddb-proxy-macos
-   ```
-
-#### Linux
-1. Download `ddb-proxy-linux` from [Releases](https://github.com/ogregod/Enhanced-Importer/releases)
-2. Open Terminal and run:
-   ```bash
-   chmod +x ddb-proxy-linux
-   ./ddb-proxy-linux
-   ```
-
-#### Alternative: Run with Node.js
-```bash
-cd proxy-server
-npm install
-npm start
-```
-
-**You should see:**
-```
-╔══════════════════════════════════════════════════════╗
-║   D&D Beyond Foundry Proxy Server                   ║
-╚══════════════════════════════════════════════════════╝
-
-✓ Server running on http://localhost:3001
-✓ Ready to proxy requests to D&D Beyond
-```
-
-### Step 3: Get Your Cobalt Cookie
+### Step 2: Get Your Cobalt Cookie
 
 1. Go to [D&D Beyond](https://www.dndbeyond.com) and log in
 2. Press **F12** to open Developer Tools
@@ -81,13 +40,15 @@ npm start
 4. Click **Cookies** → `https://www.dndbeyond.com`
 5. Find **CobaltSession** and copy its value
 
-### Step 4: Configure & Import
+### Step 3: Configure & Import
 
 1. **Activate the module** in your Foundry world
 2. Go to **Settings** → **Module Settings** → **D&D Beyond Enhanced Importer**
 3. Paste your **Cobalt Cookie**
 4. Click the **"Import D&D Beyond"** button in the sidebar
 5. Select sources and click **Import**!
+
+**Note:** The module is pre-configured to use a hosted proxy server (`https://enhanced-importer.onrender.com`) for live D&D Beyond API access. No additional setup required!
 
 ---
 
