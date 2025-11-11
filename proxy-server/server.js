@@ -165,7 +165,7 @@ async function makeAuthenticatedRequest(url, cobaltCookie, options = {}) {
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    version: '1.0.108',
+    version: '1.0.109',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: process.memoryUsage(),
@@ -192,7 +192,7 @@ app.get('/stats', (req, res) => {
     cacheSize: cache.size,
     uptime: process.uptime(),
     memory: process.memoryUsage(),
-    version: '1.0.108'
+    version: '1.0.109'
   });
 });
 
@@ -236,13 +236,14 @@ app.post('/api/validate-cookie', validateCobaltCookie, async (req, res) => {
 
   try {
     // Exchange Cobalt cookie for bearer token using D&D Beyond's auth service
+    // IMPORTANT: Cobalt cookie must be sent in Cookie header, NOT body
     const authResponse = await fetch(`${DDB_AUTH_SERVICE}/cobalt-token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Cookie': `CobaltSession=${cobaltCookie}`,
         'User-Agent': 'Foundry-VTT-DDB-Importer/1.0'
-      },
-      body: JSON.stringify({ CobaltSession: cobaltCookie })
+      }
     });
 
     if (!authResponse.ok) {
@@ -319,13 +320,14 @@ app.post('/api/content/*', async (req, res) => {
     let data;
     if (cobaltCookie) {
       // Authenticated request - get bearer token first
+      // IMPORTANT: Cobalt cookie must be sent in Cookie header, NOT body
       const authResponse = await fetch(`${DDB_AUTH_SERVICE}/cobalt-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Cookie': `CobaltSession=${cobaltCookie}`,
           'User-Agent': 'Foundry-VTT-DDB-Importer/1.0'
-        },
-        body: JSON.stringify({ CobaltSession: cobaltCookie })
+        }
       });
 
       if (!authResponse.ok) {
