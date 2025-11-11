@@ -196,6 +196,7 @@ export class DnDBeyondEnhancedAPI {
 
   /**
    * Get items from D&D Beyond
+   * NOTE: Using local database for now as D&D Beyond API endpoints are undocumented/unstable
    * @returns {Promise<Array>} Array of items
    */
   async getItems() {
@@ -204,41 +205,16 @@ export class DnDBeyondEnhancedAPI {
       return this.itemCache;
     }
 
-    const proxyAvailable = await this.checkProxyAvailability();
-
-    if (!proxyAvailable) {
-      // Fall back to local database
-      console.log('D&D Beyond Enhanced Importer | Loading items from local database');
-      const response = await fetch('modules/dnd-beyond-enhanced-importer/database/items.json');
-      this.itemCache = await response.json();
-      return this.itemCache;
-    }
-
-    try {
-      // Try to get items from D&D Beyond via proxy
-      const userInfo = await this.getUserInfo();
-      const items = await this._makeContentProxyRequest('/items');
-
-      // Filter items based on user's owned sources
-      const ownedSourceIds = userInfo.sources || [];
-      const filteredItems = items.filter(item =>
-        ownedSourceIds.includes(item.sourceId) || item.isHomebrew
-      );
-
-      this.itemCache = filteredItems;
-      return filteredItems;
-    } catch (error) {
-      console.warn('D&D Beyond Enhanced Importer | API failed, using local database:', error.message);
-
-      // Fall back to local database
-      const response = await fetch('modules/dnd-beyond-enhanced-importer/database/items.json');
-      this.itemCache = await response.json();
-      return this.itemCache;
-    }
+    // Use local database - D&D Beyond API is undocumented and unstable
+    console.log('D&D Beyond Enhanced Importer | Loading items from local database');
+    const response = await fetch('modules/dnd-beyond-enhanced-importer/database/items.json');
+    this.itemCache = await response.json();
+    return this.itemCache;
   }
 
   /**
    * Get spells from D&D Beyond
+   * NOTE: Using local database for now as D&D Beyond API endpoints are undocumented/unstable
    * @returns {Promise<Array>} Array of spells
    */
   async getSpells() {
@@ -247,37 +223,11 @@ export class DnDBeyondEnhancedAPI {
       return this.spellCache;
     }
 
-    const proxyAvailable = await this.checkProxyAvailability();
-
-    if (!proxyAvailable) {
-      // Fall back to local database
-      console.log('D&D Beyond Enhanced Importer | Loading spells from local database');
-      const response = await fetch('modules/dnd-beyond-enhanced-importer/database/spells.json');
-      this.spellCache = await response.json();
-      return this.spellCache;
-    }
-
-    try {
-      // Try to get spells from D&D Beyond via proxy
-      const userInfo = await this.getUserInfo();
-      const spells = await this._makeContentProxyRequest('/spells');
-
-      // Filter spells based on user's owned sources
-      const ownedSourceIds = userInfo.sources || [];
-      const filteredSpells = spells.filter(spell =>
-        ownedSourceIds.includes(spell.sourceId) || spell.isHomebrew
-      );
-
-      this.spellCache = filteredSpells;
-      return filteredSpells;
-    } catch (error) {
-      console.warn('D&D Beyond Enhanced Importer | API failed, using local database:', error.message);
-
-      // Fall back to local database
-      const response = await fetch('modules/dnd-beyond-enhanced-importer/database/spells.json');
-      this.spellCache = await response.json();
-      return this.spellCache;
-    }
+    // Use local database - D&D Beyond API is undocumented and unstable
+    console.log('D&D Beyond Enhanced Importer | Loading spells from local database');
+    const response = await fetch('modules/dnd-beyond-enhanced-importer/database/spells.json');
+    this.spellCache = await response.json();
+    return this.spellCache;
   }
 
   /**
