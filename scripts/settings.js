@@ -22,11 +22,11 @@ export function registerSettings() {
   // Register Proxy Server URL setting
   game.settings.register('dnd-beyond-enhanced-importer', 'proxyUrl', {
     name: 'Proxy Server URL',
-    hint: 'URL of the hosted proxy server. Leave empty to use local database only. Example: https://your-proxy.railway.app',
+    hint: 'URL of the hosted proxy server for live D&D Beyond API access. Pre-configured with official proxy.',
     scope: 'world',
     config: true,
     type: String,
-    default: '',
+    default: 'https://enhanced-importer.onrender.com',
     onChange: () => {
       // Clear proxy availability cache when URL changes
       if (game.modules.get('dnd-beyond-enhanced-importer')?.api?.API) {

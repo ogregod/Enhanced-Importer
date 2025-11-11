@@ -19,7 +19,7 @@ export class DnDBeyondEnhancedAPI {
    */
   _getProxyUrl() {
     const url = game.settings.get('dnd-beyond-enhanced-importer', 'proxyUrl');
-    return url || 'http://localhost:3001'; // Fallback to localhost for development
+    return url || 'https://enhanced-importer.onrender.com'; // Fallback to hosted proxy
   }
 
   /**
