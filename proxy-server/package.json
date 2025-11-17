@@ -1,6 +1,6 @@
 {
   "name": "ddb-foundry-proxy",
-  "version": "1.0.115",
+  "version": "1.0.116",
   "description": "Production proxy server for D&D Beyond Enhanced Importer",
   "main": "server.js",
   "type": "module",
