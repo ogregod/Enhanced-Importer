@@ -226,7 +226,8 @@ export class DnDBeyondEnhancedAPI {
       const items = data.data || data;
       this.itemCache = items;
       console.log(`D&D Beyond Enhanced Importer | DEBUG: Fetched ${items.length} items from API`);
-      console.log('D&D Beyond Enhanced Importer | DEBUG: Sample item:', items[0]);
+      console.log('D&D Beyond Enhanced Importer | DEBUG: Full sample item structure:', JSON.stringify(items[0], null, 2));
+      console.log('D&D Beyond Enhanced Importer | DEBUG: Sample item keys:', Object.keys(items[0]));
       return items;
     } catch (error) {
       console.warn('D&D Beyond Enhanced Importer | API failed, using local database:', error.message);
