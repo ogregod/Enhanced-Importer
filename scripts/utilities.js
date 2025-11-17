@@ -8,11 +8,15 @@
  * @returns {object} The Foundry VTT item
  */
 export async function convertDDBItemToFoundry(ddbItem, sources) {
+  // D&D Beyond API uses 'filterType' property for item categories
+  // Fall back to 'type' for local database compatibility
+  const itemType = ddbItem.filterType || ddbItem.type;
+
   // Base item properties
   const item = {
     name: ddbItem.name,
-    type: mapItemType(ddbItem.type),
-    img: ddbItem.avatarUrl || getDefaultItemImage(ddbItem.type),
+    type: mapItemType(itemType),
+    img: ddbItem.avatarUrl || getDefaultItemImage(itemType),
     system: {
       description: {
         value: formatItemDescription(ddbItem),
@@ -270,14 +274,19 @@ function formatSpellDescription(spell) {
 
 /**
  * Map D&D Beyond item type to Foundry type
- * @param {string} ddbType - The D&D Beyond item type
+ * @param {string} ddbType - The D&D Beyond item type or filterType
  * @returns {string} Foundry item type
  */
 function mapItemType(ddbType) {
+  // Handle null/undefined
+  if (!ddbType) return 'loot';
+
   const typeMap = {
+    // D&D Beyond API filterType values
     'Weapon': 'weapon',
     'Armor': 'equipment',
     'Wondrous item': 'equipment',
+    'Wondrous Item': 'equipment',
     'Ring': 'equipment',
     'Rod': 'equipment',
     'Staff': 'equipment',
@@ -285,14 +294,25 @@ function mapItemType(ddbType) {
     'Potion': 'consumable',
     'Scroll': 'consumable',
     'Ammunition': 'consumable',
-    'Wondrous Item': 'equipment',
     'Adventuring Gear': 'loot',
     'Tool': 'tool',
     'Mount': 'loot',
     'Vehicle': 'loot',
-    'Container': 'container'
+    'Container': 'container',
+    // Additional D&D Beyond variations
+    'Light Armor': 'equipment',
+    'Medium Armor': 'equipment',
+    'Heavy Armor': 'equipment',
+    'Shield': 'equipment',
+    'Simple Weapon': 'weapon',
+    'Martial Weapon': 'weapon',
+    'Simple Melee Weapon': 'weapon',
+    'Simple Ranged Weapon': 'weapon',
+    'Martial Melee Weapon': 'weapon',
+    'Martial Ranged Weapon': 'weapon',
+    'Other Gear': 'loot'
   };
-  
+
   return typeMap[ddbType] || 'loot';
 }
 

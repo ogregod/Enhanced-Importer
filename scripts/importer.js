@@ -185,9 +185,9 @@ export class EnhancedImporter {
       // Create folders if needed
       const folders = {};
       if (options.createFolders) {
-        // Create a parent folder for imported content
+        // Create a parent folder for imported content (shared by both items and spells)
         folders.parent = await createFolder('D&D Beyond', null, 'Item');
-        
+
         if (options.folderStructure === 'sourceBook') {
           // Create a folder for each source
           for (const sourceId of selectedSources) {
@@ -206,15 +206,15 @@ export class EnhancedImporter {
           folders.containers = await createFolder('Containers', folders.parent.id, 'Item');
           folders.loot = await createFolder('Loot', folders.parent.id, 'Item');
         }
-        
-        // Create a folder for spells
-        folders.spellsParent = await createFolder('D&D Beyond', null, 'Item');
+
+        // Reuse the same parent folder for spells (no need to create a duplicate)
+        folders.spellsParent = folders.parent;
         if (options.folderStructure === 'sourceBook') {
-          // Create a folder for each source
+          // Create a folder for each source (reuse the ones created above)
           for (const sourceId of selectedSources) {
             const source = sources.find(s => s.id === sourceId);
             if (source) {
-              folders[`spells-${sourceId}`] = await createFolder(source.name, folders.spellsParent.id, 'Item');
+              folders[`spells-${sourceId}`] = folders[sourceId] || await createFolder(source.name, folders.spellsParent.id, 'Item');
             }
           }
         } else if (options.folderStructure === 'itemType') {
