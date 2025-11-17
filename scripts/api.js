@@ -201,6 +201,7 @@ export class DnDBeyondEnhancedAPI {
   async getItems() {
     // Return cached items if available
     if (this.itemCache) {
+      console.log(`D&D Beyond Enhanced Importer | DEBUG: Returning cached items (${this.itemCache.length} items)`);
       return this.itemCache;
     }
 
@@ -211,6 +212,8 @@ export class DnDBeyondEnhancedAPI {
       console.log('D&D Beyond Enhanced Importer | Proxy unavailable, loading items from local database');
       const response = await fetch('modules/dnd-beyond-enhanced-importer/database/items.json');
       this.itemCache = await response.json();
+      console.log(`D&D Beyond Enhanced Importer | DEBUG: Loaded ${this.itemCache.length} items from local database`);
+      console.log('D&D Beyond Enhanced Importer | DEBUG: Sample item:', this.itemCache[0]);
       return this.itemCache;
     }
 
@@ -222,6 +225,8 @@ export class DnDBeyondEnhancedAPI {
       // D&D Beyond returns items in a data property
       const items = data.data || data;
       this.itemCache = items;
+      console.log(`D&D Beyond Enhanced Importer | DEBUG: Fetched ${items.length} items from API`);
+      console.log('D&D Beyond Enhanced Importer | DEBUG: Sample item:', items[0]);
       return items;
     } catch (error) {
       console.warn('D&D Beyond Enhanced Importer | API failed, using local database:', error.message);
@@ -229,6 +234,8 @@ export class DnDBeyondEnhancedAPI {
       // Fall back to local database
       const response = await fetch('modules/dnd-beyond-enhanced-importer/database/items.json');
       this.itemCache = await response.json();
+      console.log(`D&D Beyond Enhanced Importer | DEBUG: Loaded ${this.itemCache.length} items from local database (fallback)`);
+      console.log('D&D Beyond Enhanced Importer | DEBUG: Sample item:', this.itemCache[0]);
       return this.itemCache;
     }
   }
@@ -241,6 +248,7 @@ export class DnDBeyondEnhancedAPI {
   async getSpells() {
     // Return cached spells if available
     if (this.spellCache) {
+      console.log(`D&D Beyond Enhanced Importer | DEBUG: Returning cached spells (${this.spellCache.length} spells)`);
       return this.spellCache;
     }
 
@@ -248,6 +256,8 @@ export class DnDBeyondEnhancedAPI {
     console.log('D&D Beyond Enhanced Importer | Loading spells from local database');
     const response = await fetch('modules/dnd-beyond-enhanced-importer/database/spells.json');
     this.spellCache = await response.json();
+    console.log(`D&D Beyond Enhanced Importer | DEBUG: Loaded ${this.spellCache.length} spells from local database`);
+    console.log('D&D Beyond Enhanced Importer | DEBUG: Sample spell:', this.spellCache[0]);
     return this.spellCache;
   }
 

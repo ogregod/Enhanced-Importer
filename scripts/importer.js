@@ -145,13 +145,17 @@ export class EnhancedImporter {
    * @returns {Promise<object>} Import results
    */
   async importContent(selectedSources, options) {
+    console.log('D&D Beyond Enhanced Importer | DEBUG: importContent called');
+    console.log('D&D Beyond Enhanced Importer | DEBUG: Selected sources:', selectedSources);
+    console.log('D&D Beyond Enhanced Importer | DEBUG: Options:', options);
+
     if (this.importInProgress) {
       ui.notifications.error('An import is already in progress.');
       return;
     }
-    
+
     this.importInProgress = true;
-    
+
     try {
       const results = {
         items: {
@@ -224,22 +228,31 @@ export class EnhancedImporter {
       
       // Start with items if selected
       if (options.importItems) {
+        console.log('D&D Beyond Enhanced Importer | DEBUG: Starting item import');
         ui.notifications.info('Fetching items from D&D Beyond...');
-        
+
         let items = [];
         try {
           items = await this.api.getItems();
+          console.log(`D&D Beyond Enhanced Importer | DEBUG: Retrieved ${items.length} total items`);
         } catch (error) {
           console.error('D&D Beyond Enhanced Importer | Error fetching items from API:', error);
-          
+
           // If API fails, try loading from the local database
           ui.notifications.warn('Could not connect to D&D Beyond API. Using local database.');
           const response = await fetch('modules/dnd-beyond-enhanced-importer/database/items.json');
           items = await response.json();
+          console.log(`D&D Beyond Enhanced Importer | DEBUG: Retrieved ${items.length} items from fallback`);
         }
-        
+
         // Filter to only selected sources
         const filteredItems = items.filter(item => selectedSources.includes(item.sourceId));
+        console.log(`D&D Beyond Enhanced Importer | DEBUG: Filtered to ${filteredItems.length} items matching selected sources`);
+
+        if (filteredItems.length === 0) {
+          console.warn('D&D Beyond Enhanced Importer | DEBUG: No items match selected sources!');
+          console.log('D&D Beyond Enhanced Importer | DEBUG: Sample item sourceIds:', items.slice(0, 5).map(i => ({ name: i.name, sourceId: i.sourceId })));
+        }
         
         // Create a progress bar
         const itemProgress = new Progress({
@@ -253,25 +266,29 @@ export class EnhancedImporter {
         // Import each item
         for (let i = 0; i < filteredItems.length; i++) {
           const ddbItem = filteredItems[i];
-          
+          console.log(`D&D Beyond Enhanced Importer | DEBUG: Processing item ${i + 1}/${filteredItems.length}: ${ddbItem.name}`);
+
           try {
             // Update progress
             itemProgress.label = `Importing Item: ${ddbItem.name}`;
             itemProgress.pct = Math.round((i / filteredItems.length) * 100);
             itemProgress.step = i;
             itemProgress.render();
-            
+
             // Get detailed item information
             let itemDetails;
             try {
               itemDetails = await this.api.getItemDetails(ddbItem.id);
+              console.log(`D&D Beyond Enhanced Importer | DEBUG: Got detailed info for ${ddbItem.name}`);
             } catch (error) {
               console.warn(`D&D Beyond Enhanced Importer | Error getting item details for ${ddbItem.name}, using basic item:`, error);
               itemDetails = ddbItem;
             }
-            
+
             // Convert to Foundry format
+            console.log(`D&D Beyond Enhanced Importer | DEBUG: Converting ${ddbItem.name} to Foundry format`);
             const foundryItem = await convertDDBItemToFoundry(itemDetails, sources);
+            console.log(`D&D Beyond Enhanced Importer | DEBUG: Converted item:`, foundryItem);
             
             // Determine folder
             let folderId = null;
@@ -301,34 +318,40 @@ export class EnhancedImporter {
             }
             
             // Check if item already exists
-            const existingItem = game.items.find(i => 
+            const existingItem = game.items.find(i =>
               i.name === foundryItem.name && i.type === foundryItem.type
             );
-            
+
             if (existingItem && !options.overwriteExisting) {
               // Skip this item
+              console.log(`D&D Beyond Enhanced Importer | DEBUG: Skipping ${ddbItem.name} - already exists`);
               results.items.skipped++;
               continue;
             }
-            
+
             // Create or update the item
             if (existingItem && options.overwriteExisting) {
               // Update existing item
+              console.log(`D&D Beyond Enhanced Importer | DEBUG: Updating existing item ${ddbItem.name}`);
               await existingItem.update({
                 ...foundryItem,
                 folder: folderId
               });
+              console.log(`D&D Beyond Enhanced Importer | DEBUG: Successfully updated ${ddbItem.name}`);
             } else {
               // Create new item
-              await Item.create({
+              console.log(`D&D Beyond Enhanced Importer | DEBUG: Creating new item ${ddbItem.name}`);
+              const createdItem = await Item.create({
                 ...foundryItem,
                 folder: folderId
               });
+              console.log(`D&D Beyond Enhanced Importer | DEBUG: Successfully created ${ddbItem.name}:`, createdItem);
             }
-            
+
             results.items.success++;
           } catch (error) {
             console.error(`D&D Beyond Enhanced Importer | Error importing item ${ddbItem.name}:`, error);
+            console.error(`D&D Beyond Enhanced Importer | DEBUG: Error stack:`, error.stack);
             results.items.error++;
           }
         }
@@ -339,22 +362,31 @@ export class EnhancedImporter {
       
       // Import spells if selected
       if (options.importSpells) {
+        console.log('D&D Beyond Enhanced Importer | DEBUG: Starting spell import');
         ui.notifications.info('Fetching spells from D&D Beyond...');
-        
+
         let spells = [];
         try {
           spells = await this.api.getSpells();
+          console.log(`D&D Beyond Enhanced Importer | DEBUG: Retrieved ${spells.length} total spells`);
         } catch (error) {
           console.error('D&D Beyond Enhanced Importer | Error fetching spells from API:', error);
-          
+
           // If API fails, try loading from the local database
           ui.notifications.warn('Could not connect to D&D Beyond API. Using local database.');
           const response = await fetch('modules/dnd-beyond-enhanced-importer/database/spells.json');
           spells = await response.json();
+          console.log(`D&D Beyond Enhanced Importer | DEBUG: Retrieved ${spells.length} spells from fallback`);
         }
-        
+
         // Filter to only selected sources
         const filteredSpells = spells.filter(spell => selectedSources.includes(spell.sourceId));
+        console.log(`D&D Beyond Enhanced Importer | DEBUG: Filtered to ${filteredSpells.length} spells matching selected sources`);
+
+        if (filteredSpells.length === 0) {
+          console.warn('D&D Beyond Enhanced Importer | DEBUG: No spells match selected sources!');
+          console.log('D&D Beyond Enhanced Importer | DEBUG: Sample spell sourceIds:', spells.slice(0, 5).map(s => ({ name: s.name, sourceId: s.sourceId })));
+        }
         
         // Create a progress bar
         const spellProgress = new Progress({
@@ -368,25 +400,29 @@ export class EnhancedImporter {
         // Import each spell
         for (let i = 0; i < filteredSpells.length; i++) {
           const ddbSpell = filteredSpells[i];
-          
+          console.log(`D&D Beyond Enhanced Importer | DEBUG: Processing spell ${i + 1}/${filteredSpells.length}: ${ddbSpell.name}`);
+
           try {
             // Update progress
             spellProgress.label = `Importing Spell: ${ddbSpell.name}`;
             spellProgress.pct = Math.round((i / filteredSpells.length) * 100);
             spellProgress.step = i;
             spellProgress.render();
-            
+
             // Get detailed spell information
             let spellDetails;
             try {
               spellDetails = await this.api.getSpellDetails(ddbSpell.id);
+              console.log(`D&D Beyond Enhanced Importer | DEBUG: Got detailed info for ${ddbSpell.name}`);
             } catch (error) {
               console.warn(`D&D Beyond Enhanced Importer | Error getting spell details for ${ddbSpell.name}, using basic spell:`, error);
               spellDetails = ddbSpell;
             }
-            
+
             // Convert to Foundry format
+            console.log(`D&D Beyond Enhanced Importer | DEBUG: Converting ${ddbSpell.name} to Foundry format`);
             const foundrySpell = await convertDDBSpellToFoundry(spellDetails, sources);
+            console.log(`D&D Beyond Enhanced Importer | DEBUG: Converted spell:`, foundrySpell);
             
             // Determine folder
             let folderId = null;
@@ -401,34 +437,40 @@ export class EnhancedImporter {
             }
             
             // Check if spell already exists
-            const existingSpell = game.items.find(i => 
+            const existingSpell = game.items.find(i =>
               i.name === foundrySpell.name && i.type === 'spell'
             );
-            
+
             if (existingSpell && !options.overwriteExisting) {
               // Skip this spell
+              console.log(`D&D Beyond Enhanced Importer | DEBUG: Skipping ${ddbSpell.name} - already exists`);
               results.spells.skipped++;
               continue;
             }
-            
+
             // Create or update the spell
             if (existingSpell && options.overwriteExisting) {
               // Update existing spell
+              console.log(`D&D Beyond Enhanced Importer | DEBUG: Updating existing spell ${ddbSpell.name}`);
               await existingSpell.update({
                 ...foundrySpell,
                 folder: folderId
               });
+              console.log(`D&D Beyond Enhanced Importer | DEBUG: Successfully updated ${ddbSpell.name}`);
             } else {
               // Create new spell
-              await Item.create({
+              console.log(`D&D Beyond Enhanced Importer | DEBUG: Creating new spell ${ddbSpell.name}`);
+              const createdSpell = await Item.create({
                 ...foundrySpell,
                 folder: folderId
               });
+              console.log(`D&D Beyond Enhanced Importer | DEBUG: Successfully created ${ddbSpell.name}:`, createdSpell);
             }
-            
+
             results.spells.success++;
           } catch (error) {
             console.error(`D&D Beyond Enhanced Importer | Error importing spell ${ddbSpell.name}:`, error);
+            console.error(`D&D Beyond Enhanced Importer | DEBUG: Error stack:`, error.stack);
             results.spells.error++;
           }
         }
@@ -439,7 +481,8 @@ export class EnhancedImporter {
       
       // Update the last sync date
       await game.settings.set('dnd-beyond-enhanced-importer', 'lastSync', new Date().toISOString());
-      
+
+      console.log('D&D Beyond Enhanced Importer | DEBUG: Import complete. Final results:', results);
       return results;
     } catch (error) {
       console.error('D&D Beyond Enhanced Importer | Error importing content:', error);
