@@ -63,10 +63,10 @@ app.use(cors({
 // Parse JSON bodies
 app.use(express.json({ limit: '10mb' }));
 
-// Rate limiting - Prevent abuse
+// Rate limiting - Prevent abuse while allowing large imports
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per windowMs per IP
+  max: 1000, // 1000 requests per windowMs per IP (increased to support large imports)
   message: {
     error: 'Too many requests',
     message: 'Please wait before making more requests.'
@@ -165,7 +165,7 @@ async function makeAuthenticatedRequest(url, cobaltCookie, options = {}) {
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    version: '1.0.113',
+    version: '1.0.117',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: process.memoryUsage(),
@@ -192,7 +192,7 @@ app.get('/stats', (req, res) => {
     cacheSize: cache.size,
     uptime: process.uptime(),
     memory: process.memoryUsage(),
-    version: '1.0.113'
+    version: '1.0.117'
   });
 });
 
