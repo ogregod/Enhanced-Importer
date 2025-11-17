@@ -2,7 +2,7 @@
 
 Import all your purchased D&D Beyond content directly into Foundry VTT with full functionality. Items and spells come properly configured with pricing, templates, effects, and rolls.
 
-![Version](https://img.shields.io/badge/version-1.0.113-blue)
+![Version](https://img.shields.io/badge/version-1.0.119-blue)
 ![Foundry](https://img.shields.io/badge/Foundry-v11--v13-orange)
 ![System](https://img.shields.io/badge/System-D&D%205e-red)
 
@@ -40,15 +40,27 @@ Import all your purchased D&D Beyond content directly into Foundry VTT with full
 4. Click **Cookies** → `https://www.dndbeyond.com`
 5. Find **CobaltSession** and copy its value
 
-### Step 3: Configure & Import
+### Step 3: Start the Proxy Server
+
+**Option A: Run Locally (Recommended for Testing)**
+```bash
+cd proxy-server
+npm install
+npm start
+```
+The proxy will start on `http://localhost:3001` and the module will automatically detect it.
+
+**Option B: Deploy to Render/Railway (Recommended for Production)**
+See [proxy-server/DEPLOYMENT.md](proxy-server/DEPLOYMENT.md) for detailed deployment instructions.
+
+### Step 4: Configure & Import
 
 1. **Activate the module** in your Foundry world
 2. Go to **Settings** → **Module Settings** → **D&D Beyond Enhanced Importer**
 3. Paste your **Cobalt Cookie**
-4. Click the **"Import D&D Beyond"** button in the sidebar
-5. Select sources and click **Import**!
-
-**Note:** The module is pre-configured to use a hosted proxy server (`https://enhanced-importer.onrender.com`) for live D&D Beyond API access. No additional setup required!
+4. (Optional) Set **Proxy Server URL** if not using localhost
+5. Click the **"Import D&D Beyond"** button in the sidebar
+6. Select sources and click **Import**!
 
 ---
 
