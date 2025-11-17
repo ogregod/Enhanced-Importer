@@ -2,7 +2,7 @@
 
 Import all your purchased D&D Beyond content directly into Foundry VTT with full functionality. Items and spells come properly configured with pricing, templates, effects, and rolls.
 
-![Version](https://img.shields.io/badge/version-1.0.113-blue)
+![Version](https://img.shields.io/badge/version-1.0.120-blue)
 ![Foundry](https://img.shields.io/badge/Foundry-v11--v13-orange)
 ![System](https://img.shields.io/badge/System-D&D%205e-red)
 
@@ -48,7 +48,22 @@ Import all your purchased D&D Beyond content directly into Foundry VTT with full
 4. Click the **"Import D&D Beyond"** button in the sidebar
 5. Select sources and click **Import**!
 
-**Note:** The module is pre-configured to use a hosted proxy server (`https://enhanced-importer.onrender.com`) for live D&D Beyond API access. No additional setup required!
+**Note:** The module uses a hosted proxy server at `https://enhanced-importer.onrender.com` by default. The first import may take up to 60 seconds as the free-tier server wakes from sleep. Subsequent imports will be fast.
+
+### Optional: Run Your Own Proxy Server
+
+If you prefer to run the proxy locally or deploy your own instance:
+
+**Run Locally:**
+```bash
+cd proxy-server
+npm install
+npm start
+```
+Then set the **Proxy Server URL** in module settings to `http://localhost:3001`
+
+**Deploy Your Own:**
+See [proxy-server/DEPLOYMENT.md](proxy-server/DEPLOYMENT.md) for Render/Railway deployment instructions.
 
 ---
 

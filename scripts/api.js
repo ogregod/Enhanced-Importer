@@ -19,7 +19,9 @@ export class DnDBeyondEnhancedAPI {
    */
   _getProxyUrl() {
     const url = game.settings.get('dnd-beyond-enhanced-importer', 'proxyUrl');
-    return url || 'https://enhanced-importer.onrender.com'; // Fallback to hosted proxy
+    // Default to hosted Render proxy (may take up to 60s to wake from sleep on free tier)
+    // Users can override in settings or run locally at http://localhost:3001
+    return url || 'https://enhanced-importer.onrender.com';
   }
 
   /**
@@ -41,21 +43,38 @@ export class DnDBeyondEnhancedAPI {
       return this.proxyAvailable;
     }
 
+    const proxyUrl = this._getProxyUrl();
+    console.log(`D&D Beyond Enhanced Importer | Checking proxy availability at ${proxyUrl}`);
+
     try {
-      const response = await fetch(`${this._getProxyUrl()}/health`, {
+      // Increased timeout to 60 seconds to allow Render free tier to wake from sleep
+      const response = await fetch(`${proxyUrl}/health`, {
         method: 'GET',
-        signal: AbortSignal.timeout(2000) // 2 second timeout
+        signal: AbortSignal.timeout(60000) // 60 second timeout for cold starts
       });
 
       if (response.ok) {
         const data = await response.json();
         this.proxyAvailable = data.status === 'ok';
-        console.log('D&D Beyond Enhanced Importer | Proxy server is available');
+        console.log('D&D Beyond Enhanced Importer | Proxy server is available and responding');
         return this.proxyAvailable;
+      } else {
+        console.warn(`D&D Beyond Enhanced Importer | Proxy server returned status ${response.status}`);
+        this.proxyAvailable = false;
       }
     } catch (error) {
       this.proxyAvailable = false;
       console.warn('D&D Beyond Enhanced Importer | Proxy server not available, using local database');
+      console.warn('D&D Beyond Enhanced Importer | Error details:', error.message);
+
+      // Show helpful notification to the user
+      if (game && game.user && game.user.isGM) {
+        ui.notifications.warn(
+          `D&D Beyond Enhanced Importer: Proxy server not available at ${proxyUrl}. ` +
+          `To import items, either start the local proxy server (see README) or deploy to Render/Railway.`,
+          { permanent: false, console: false }
+        );
+      }
     }
 
     return this.proxyAvailable;
