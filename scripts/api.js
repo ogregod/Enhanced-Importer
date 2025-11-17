@@ -62,11 +62,12 @@ export class DnDBeyondEnhancedAPI {
   }
 
   /**
-   * Validate if a Cobalt cookie is valid
+   * Validate if a Cobalt cookie is valid with retry logic
    * @param {string} cookie - The Cobalt cookie to validate
+   * @param {number} [retryCount=0] - Current retry attempt
    * @returns {Promise<boolean>} Whether the cookie is valid
    */
-  async validateCookie(cookie) {
+  async validateCookie(cookie, retryCount = 0) {
     if (!cookie || cookie.trim() === '') {
       return false;
     }
@@ -81,6 +82,7 @@ export class DnDBeyondEnhancedAPI {
     }
 
     try {
+      const maxRetries = 3;
       const response = await fetch(`${this._getProxyUrl()}/api/validate-cookie`, {
         method: 'POST',
         headers: {
@@ -88,6 +90,15 @@ export class DnDBeyondEnhancedAPI {
         },
         body: JSON.stringify({ cobaltCookie: cookie })
       });
+
+      // Handle rate limiting with exponential backoff
+      if (response.status === 429 && retryCount < maxRetries) {
+        const retryDelay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+        console.warn(`D&D Beyond Enhanced Importer | Cookie validation rate limited, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        return this.validateCookie(cookie, retryCount + 1);
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -132,14 +143,16 @@ export class DnDBeyondEnhancedAPI {
   }
 
   /**
-   * Make a content request via proxy
+   * Make a content request via proxy with retry logic for rate limiting
    * @param {string} endpoint - The content API endpoint
    * @param {string} [cookie=null] - Optional cookie to use
+   * @param {number} [retryCount=0] - Current retry attempt
    * @returns {Promise<object>} The API response data
    * @private
    */
-  async _makeContentProxyRequest(endpoint, cookie = null) {
+  async _makeContentProxyRequest(endpoint, cookie = null, retryCount = 0) {
     const cobaltCookie = cookie || this._getCobaltCookie();
+    const maxRetries = 3;
 
     const response = await fetch(`${this._getProxyUrl()}/api/content${endpoint}`, {
       method: 'POST',
@@ -148,6 +161,15 @@ export class DnDBeyondEnhancedAPI {
       },
       body: JSON.stringify({ cobaltCookie })
     });
+
+    // Handle rate limiting with exponential backoff
+    if (response.status === 429 && retryCount < maxRetries) {
+      const retryDelay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+      console.warn(`D&D Beyond Enhanced Importer | Rate limited, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      return this._makeContentProxyRequest(endpoint, cookie, retryCount + 1);
+    }
 
     if (!response.ok) {
       const error = await response.json();
