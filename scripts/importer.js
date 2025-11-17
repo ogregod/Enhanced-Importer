@@ -246,12 +246,20 @@ export class EnhancedImporter {
         }
 
         // Filter to only selected sources
-        const filteredItems = items.filter(item => selectedSources.includes(item.sourceId));
+        // D&D Beyond API returns sources as an array, not a single sourceId
+        const filteredItems = items.filter(item => {
+          // Check if item has sources array (API format)
+          if (item.sources && Array.isArray(item.sources)) {
+            return item.sources.some(source => selectedSources.includes(source.sourceId));
+          }
+          // Fallback to sourceId property (local database format)
+          return selectedSources.includes(item.sourceId);
+        });
         console.log(`D&D Beyond Enhanced Importer | DEBUG: Filtered to ${filteredItems.length} items matching selected sources`);
 
         if (filteredItems.length === 0) {
           console.warn('D&D Beyond Enhanced Importer | DEBUG: No items match selected sources!');
-          console.log('D&D Beyond Enhanced Importer | DEBUG: Sample item sourceIds:', items.slice(0, 5).map(i => ({ name: i.name, sourceId: i.sourceId })));
+          console.log('D&D Beyond Enhanced Importer | DEBUG: Sample item sources:', items.slice(0, 5).map(i => ({ name: i.name, sources: i.sources })));
         }
         
         // Create a progress bar
@@ -294,7 +302,9 @@ export class EnhancedImporter {
             let folderId = null;
             if (options.createFolders) {
               if (options.folderStructure === 'sourceBook') {
-                folderId = folders[ddbItem.sourceId]?.id;
+                // Get the first source from the sources array (API format) or use sourceId (local format)
+                const sourceId = ddbItem.sources?.[0]?.sourceId || ddbItem.sourceId;
+                folderId = folders[sourceId]?.id;
               } else if (options.folderStructure === 'itemType') {
                 // Map DDB item type to folder
                 switch (foundryItem.type) {
@@ -380,12 +390,20 @@ export class EnhancedImporter {
         }
 
         // Filter to only selected sources
-        const filteredSpells = spells.filter(spell => selectedSources.includes(spell.sourceId));
+        // D&D Beyond API returns sources as an array, not a single sourceId
+        const filteredSpells = spells.filter(spell => {
+          // Check if spell has sources array (API format)
+          if (spell.sources && Array.isArray(spell.sources)) {
+            return spell.sources.some(source => selectedSources.includes(source.sourceId));
+          }
+          // Fallback to sourceId property (local database format)
+          return selectedSources.includes(spell.sourceId);
+        });
         console.log(`D&D Beyond Enhanced Importer | DEBUG: Filtered to ${filteredSpells.length} spells matching selected sources`);
 
         if (filteredSpells.length === 0) {
           console.warn('D&D Beyond Enhanced Importer | DEBUG: No spells match selected sources!');
-          console.log('D&D Beyond Enhanced Importer | DEBUG: Sample spell sourceIds:', spells.slice(0, 5).map(s => ({ name: s.name, sourceId: s.sourceId })));
+          console.log('D&D Beyond Enhanced Importer | DEBUG: Sample spell sources:', spells.slice(0, 5).map(s => ({ name: s.name, sources: s.sources })));
         }
         
         // Create a progress bar
@@ -428,7 +446,9 @@ export class EnhancedImporter {
             let folderId = null;
             if (options.createFolders) {
               if (options.folderStructure === 'sourceBook') {
-                folderId = folders[`spells-${ddbSpell.sourceId}`]?.id;
+                // Get the first source from the sources array (API format) or use sourceId (local format)
+                const sourceId = ddbSpell.sources?.[0]?.sourceId || ddbSpell.sourceId;
+                folderId = folders[`spells-${sourceId}`]?.id;
               } else if (options.folderStructure === 'itemType') {
                 folderId = folders[`level-${spellDetails.level}`]?.id;
               } else {
@@ -500,6 +520,11 @@ export class EnhancedImporter {
    * @returns {boolean} Whether the item should be imported
    */
   shouldImport(item, selectedSources) {
+    // Check if item has sources array (API format)
+    if (item.sources && Array.isArray(item.sources)) {
+      return item.sources.some(source => selectedSources.includes(source.sourceId));
+    }
+    // Fallback to sourceId property (local database format)
     return selectedSources.includes(item.sourceId);
   }
 }
