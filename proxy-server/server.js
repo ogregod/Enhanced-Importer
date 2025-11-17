@@ -34,8 +34,8 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 // D&D Beyond API endpoints
 const DDB_AUTH_SERVICE = 'https://auth-service.dndbeyond.com/v1';
 const DDB_CHARACTER_SERVICE = 'https://character-service.dndbeyond.com/character/v5';
-const DDB_GAME_DATA_API = 'https://www.dndbeyond.com/api/game-data';
-const DDB_CAMPAIGN_API = 'https://www.dndbeyond.com/api/campaign';
+// Game data endpoints are under character service, not www.dndbeyond.com
+const DDB_GAME_DATA_BASE = `${DDB_CHARACTER_SERVICE}/game-data`;
 
 // Simple in-memory cache for anonymous data (not user-specific)
 const cache = new Map();
@@ -165,7 +165,7 @@ async function makeAuthenticatedRequest(url, cobaltCookie, options = {}) {
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    version: '1.0.110',
+    version: '1.0.112',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: process.memoryUsage(),
@@ -192,7 +192,7 @@ app.get('/stats', (req, res) => {
     cacheSize: cache.size,
     uptime: process.uptime(),
     memory: process.memoryUsage(),
-    version: '1.0.110'
+    version: '1.0.112'
   });
 });
 
@@ -306,15 +306,19 @@ app.post('/api/content/*', async (req, res) => {
   try {
     let url;
     // Map endpoints to correct D&D Beyond game-data URLs
+    // Based on MrPrimate's ddb-proxy implementation
     if (endpoint === '/items') {
-      url = `${DDB_GAME_DATA_API}/items`;
+      // Items endpoint with sharingSetting=2 for all shared content
+      url = `${DDB_GAME_DATA_BASE}/items?sharingSetting=2`;
     } else if (endpoint === '/spells') {
-      url = `${DDB_GAME_DATA_API}/spells`;
+      // Spells endpoint - try to get all spells with sharingSetting=2
+      url = `${DDB_GAME_DATA_BASE}/spells?sharingSetting=2`;
     } else if (endpoint === '/sources') {
-      url = `${DDB_GAME_DATA_API}/sources`;
+      // Sources don't exist as an endpoint - this should fall back to local
+      throw new Error('Sources endpoint not available from D&D Beyond API');
     } else {
       // Generic game-data endpoint
-      url = `${DDB_GAME_DATA_API}${endpoint}`;
+      url = `${DDB_GAME_DATA_BASE}${endpoint}`;
     }
 
     let data;
