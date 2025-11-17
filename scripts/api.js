@@ -19,9 +19,9 @@ export class DnDBeyondEnhancedAPI {
    */
   _getProxyUrl() {
     const url = game.settings.get('dnd-beyond-enhanced-importer', 'proxyUrl');
-    // Default to localhost if no proxy URL is set
-    // Users should either run the proxy locally or deploy to Render/Railway
-    return url || 'http://localhost:3001';
+    // Default to hosted Render proxy (may take up to 60s to wake from sleep on free tier)
+    // Users can override in settings or run locally at http://localhost:3001
+    return url || 'https://enhanced-importer.onrender.com';
   }
 
   /**

@@ -2,7 +2,7 @@
 
 Import all your purchased D&D Beyond content directly into Foundry VTT with full functionality. Items and spells come properly configured with pricing, templates, effects, and rolls.
 
-![Version](https://img.shields.io/badge/version-1.0.119-blue)
+![Version](https://img.shields.io/badge/version-1.0.120-blue)
 ![Foundry](https://img.shields.io/badge/Foundry-v11--v13-orange)
 ![System](https://img.shields.io/badge/System-D&D%205e-red)
 
@@ -40,27 +40,30 @@ Import all your purchased D&D Beyond content directly into Foundry VTT with full
 4. Click **Cookies** → `https://www.dndbeyond.com`
 5. Find **CobaltSession** and copy its value
 
-### Step 3: Start the Proxy Server
+### Step 3: Configure & Import
 
-**Option A: Run Locally (Recommended for Testing)**
+1. **Activate the module** in your Foundry world
+2. Go to **Settings** → **Module Settings** → **D&D Beyond Enhanced Importer**
+3. Paste your **Cobalt Cookie**
+4. Click the **"Import D&D Beyond"** button in the sidebar
+5. Select sources and click **Import**!
+
+**Note:** The module uses a hosted proxy server at `https://enhanced-importer.onrender.com` by default. The first import may take up to 60 seconds as the free-tier server wakes from sleep. Subsequent imports will be fast.
+
+### Optional: Run Your Own Proxy Server
+
+If you prefer to run the proxy locally or deploy your own instance:
+
+**Run Locally:**
 ```bash
 cd proxy-server
 npm install
 npm start
 ```
-The proxy will start on `http://localhost:3001` and the module will automatically detect it.
+Then set the **Proxy Server URL** in module settings to `http://localhost:3001`
 
-**Option B: Deploy to Render/Railway (Recommended for Production)**
-See [proxy-server/DEPLOYMENT.md](proxy-server/DEPLOYMENT.md) for detailed deployment instructions.
-
-### Step 4: Configure & Import
-
-1. **Activate the module** in your Foundry world
-2. Go to **Settings** → **Module Settings** → **D&D Beyond Enhanced Importer**
-3. Paste your **Cobalt Cookie**
-4. (Optional) Set **Proxy Server URL** if not using localhost
-5. Click the **"Import D&D Beyond"** button in the sidebar
-6. Select sources and click **Import**!
+**Deploy Your Own:**
+See [proxy-server/DEPLOYMENT.md](proxy-server/DEPLOYMENT.md) for Render/Railway deployment instructions.
 
 ---
 
