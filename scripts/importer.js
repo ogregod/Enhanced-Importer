@@ -197,14 +197,42 @@ export class EnhancedImporter {
             }
           }
         } else if (options.folderStructure === 'itemType') {
-          // Create folders for each item type
-          folders.weapons = await createFolder('Weapons', folders.parent.id, 'Item');
-          folders.armor = await createFolder('Armor', folders.parent.id, 'Item');
-          folders.equipment = await createFolder('Equipment', folders.parent.id, 'Item');
-          folders.consumables = await createFolder('Consumables', folders.parent.id, 'Item');
+          // Create hierarchical folder structure for item types
+
+          // Weapons folder with subcategories
+          folders.weaponsParent = await createFolder('Weapons', folders.parent.id, 'Item');
+          folders['weapon-simple-melee'] = await createFolder('Simple Melee Weapons', folders.weaponsParent.id, 'Item');
+          folders['weapon-simple-ranged'] = await createFolder('Simple Ranged Weapons', folders.weaponsParent.id, 'Item');
+          folders['weapon-martial-melee'] = await createFolder('Martial Melee Weapons', folders.weaponsParent.id, 'Item');
+          folders['weapon-martial-ranged'] = await createFolder('Martial Ranged Weapons', folders.weaponsParent.id, 'Item');
+
+          // Armor folder with subcategories
+          folders.armorParent = await createFolder('Armor', folders.parent.id, 'Item');
+          folders['armor-light'] = await createFolder('Light Armor', folders.armorParent.id, 'Item');
+          folders['armor-medium'] = await createFolder('Medium Armor', folders.armorParent.id, 'Item');
+          folders['armor-heavy'] = await createFolder('Heavy Armor', folders.armorParent.id, 'Item');
+          folders['armor-shield'] = await createFolder('Shields', folders.armorParent.id, 'Item');
+
+          // Equipment folder with subcategories
+          folders.equipmentParent = await createFolder('Equipment', folders.parent.id, 'Item');
+          folders['equipment-wondrous'] = await createFolder('Wondrous Items', folders.equipmentParent.id, 'Item');
+          folders['equipment-ring'] = await createFolder('Rings', folders.equipmentParent.id, 'Item');
+          folders['equipment-rod'] = await createFolder('Rods', folders.equipmentParent.id, 'Item');
+          folders['equipment-staff'] = await createFolder('Staffs', folders.equipmentParent.id, 'Item');
+          folders['equipment-wand'] = await createFolder('Wands', folders.equipmentParent.id, 'Item');
+          folders['equipment-other'] = await createFolder('Other Equipment', folders.equipmentParent.id, 'Item');
+
+          // Consumables folder with subcategories
+          folders.consumablesParent = await createFolder('Consumables', folders.parent.id, 'Item');
+          folders['consumable-potion'] = await createFolder('Potions', folders.consumablesParent.id, 'Item');
+          folders['consumable-scroll'] = await createFolder('Scrolls', folders.consumablesParent.id, 'Item');
+          folders['consumable-ammunition'] = await createFolder('Ammunition', folders.consumablesParent.id, 'Item');
+          folders['consumable-other'] = await createFolder('Other Consumables', folders.consumablesParent.id, 'Item');
+
+          // Simple folders for other types
           folders.tools = await createFolder('Tools', folders.parent.id, 'Item');
           folders.containers = await createFolder('Containers', folders.parent.id, 'Item');
-          folders.loot = await createFolder('Loot', folders.parent.id, 'Item');
+          folders.loot = await createFolder('Adventuring Gear', folders.parent.id, 'Item');
         }
 
         // Reuse the same parent folder for spells (no need to create a duplicate)
@@ -305,28 +333,91 @@ export class EnhancedImporter {
                 // Get the first source from the sources array (API format) or use sourceId (local format)
                 const sourceId = ddbItem.sources?.[0]?.sourceId || ddbItem.sourceId;
                 folderId = folders[sourceId]?.id;
+                console.log(`D&D Beyond Enhanced Importer | DEBUG: ${ddbItem.name} -> Source folder ${sourceId}`);
               } else if (options.folderStructure === 'itemType') {
-                // Map DDB item type to folder
-                switch (foundryItem.type) {
-                  case 'weapon': folderId = folders.weapons?.id; break;
-                  case 'equipment': 
-                    if (foundryItem.system.armor?.type) {
-                      folderId = folders.armor?.id;
-                    } else {
-                      folderId = folders.equipment?.id;
-                    }
-                    break;
-                  case 'consumable': folderId = folders.consumables?.id; break;
-                  case 'tool': folderId = folders.tools?.id; break;
-                  case 'container': folderId = folders.containers?.id; break;
-                  case 'loot': folderId = folders.loot?.id; break;
-                  default: folderId = folders.parent?.id;
+                // Determine subfolder based on D&D Beyond item data
+                const filterType = ddbItem.filterType || ddbItem.type || '';
+                console.log(`D&D Beyond Enhanced Importer | DEBUG: ${ddbItem.name} filterType: "${filterType}", foundryType: "${foundryItem.type}"`);
+
+                // Weapons - check for weapon type
+                if (filterType.includes('Weapon') || foundryItem.type === 'weapon') {
+                  if (filterType.includes('Simple') && filterType.includes('Melee')) {
+                    folderId = folders['weapon-simple-melee']?.id;
+                  } else if (filterType.includes('Simple') && filterType.includes('Ranged')) {
+                    folderId = folders['weapon-simple-ranged']?.id;
+                  } else if (filterType.includes('Martial') && filterType.includes('Melee')) {
+                    folderId = folders['weapon-martial-melee']?.id;
+                  } else if (filterType.includes('Martial') && filterType.includes('Ranged')) {
+                    folderId = folders['weapon-martial-ranged']?.id;
+                  } else {
+                    folderId = folders.weaponsParent?.id;
+                  }
                 }
+                // Armor - check for armor type
+                else if (filterType.includes('Armor') || filterType === 'Shield' || foundryItem.system.armor?.type) {
+                  if (filterType.includes('Light')) {
+                    folderId = folders['armor-light']?.id;
+                  } else if (filterType.includes('Medium')) {
+                    folderId = folders['armor-medium']?.id;
+                  } else if (filterType.includes('Heavy')) {
+                    folderId = folders['armor-heavy']?.id;
+                  } else if (filterType === 'Shield') {
+                    folderId = folders['armor-shield']?.id;
+                  } else {
+                    folderId = folders.armorParent?.id;
+                  }
+                }
+                // Consumables
+                else if (filterType === 'Potion' || foundryItem.type === 'consumable') {
+                  if (filterType === 'Potion') {
+                    folderId = folders['consumable-potion']?.id;
+                  } else if (filterType === 'Scroll') {
+                    folderId = folders['consumable-scroll']?.id;
+                  } else if (filterType === 'Ammunition') {
+                    folderId = folders['consumable-ammunition']?.id;
+                  } else {
+                    folderId = folders['consumable-other']?.id;
+                  }
+                }
+                // Equipment (wondrous items, rings, rods, staffs, wands)
+                else if (foundryItem.type === 'equipment' || filterType.includes('Wondrous') || filterType === 'Ring' || filterType === 'Rod' || filterType === 'Staff' || filterType === 'Wand') {
+                  if (filterType.includes('Wondrous')) {
+                    folderId = folders['equipment-wondrous']?.id;
+                  } else if (filterType === 'Ring') {
+                    folderId = folders['equipment-ring']?.id;
+                  } else if (filterType === 'Rod') {
+                    folderId = folders['equipment-rod']?.id;
+                  } else if (filterType === 'Staff') {
+                    folderId = folders['equipment-staff']?.id;
+                  } else if (filterType === 'Wand') {
+                    folderId = folders['equipment-wand']?.id;
+                  } else {
+                    folderId = folders['equipment-other']?.id;
+                  }
+                }
+                // Tools
+                else if (foundryItem.type === 'tool' || filterType === 'Tool') {
+                  folderId = folders.tools?.id;
+                }
+                // Containers
+                else if (foundryItem.type === 'container' || filterType === 'Container') {
+                  folderId = folders.containers?.id;
+                }
+                // Adventuring Gear / Loot
+                else if (foundryItem.type === 'loot' || filterType === 'Adventuring Gear') {
+                  folderId = folders.loot?.id;
+                }
+                // Default to parent folder
+                else {
+                  folderId = folders.parent?.id;
+                }
+
+                console.log(`D&D Beyond Enhanced Importer | DEBUG: ${ddbItem.name} assigned to folder ID: ${folderId}`);
               } else {
                 folderId = folders.parent?.id;
               }
             }
-            
+
             // Check if item already exists
             const existingItem = game.items.find(i =>
               i.name === foundryItem.name && i.type === foundryItem.type
