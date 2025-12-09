@@ -32,7 +32,8 @@ const PORT = process.env.PORT || 3001;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Trust proxy - Required for rate limiting behind reverse proxies (Render, Railway, etc.)
-app.set('trust proxy', true);
+// Set to 1 for single reverse proxy (Render's load balancer)
+app.set('trust proxy', 1);
 
 // D&D Beyond API endpoints
 const DDB_AUTH_SERVICE = 'https://auth-service.dndbeyond.com/v1';
@@ -359,8 +360,20 @@ app.post('/api/content/*', async (req, res) => {
 
           const response = await fetch(classUrl, { headers });
 
+          console.log(`[${className}] Response status: ${response.status} ${response.statusText}`);
+
           if (response.ok) {
             const classData = await response.json();
+
+            // Debug logging to understand response format
+            console.log(`[${className}] Response structure:`, {
+              hasData: !!classData?.data,
+              isArray: Array.isArray(classData),
+              dataIsArray: Array.isArray(classData?.data),
+              keys: Object.keys(classData || {}),
+              sampleData: classData?.data?.[0] || classData?.[0]
+            });
+
             const spells = classData?.data || classData || [];
 
             // Process each spell and tag with class
