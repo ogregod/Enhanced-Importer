@@ -31,6 +31,9 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// Trust proxy - Required for rate limiting behind reverse proxies (Render, Railway, etc.)
+app.set('trust proxy', true);
+
 // D&D Beyond API endpoints
 const DDB_AUTH_SERVICE = 'https://auth-service.dndbeyond.com/v1';
 const DDB_CHARACTER_SERVICE = 'https://character-service.dndbeyond.com/character/v5';
@@ -305,6 +308,7 @@ app.post('/api/content/*', async (req, res) => {
 
   try {
     let url;
+    let data; // Declare data at the top to avoid initialization errors
     // Map endpoints to correct D&D Beyond game-data URLs
     // Based on MrPrimate's ddb-proxy implementation
     if (endpoint === '/items') {
@@ -399,7 +403,6 @@ app.post('/api/content/*', async (req, res) => {
       url = `${DDB_GAME_DATA_BASE}${endpoint}`;
     }
 
-    let data;
     if (cobaltCookie) {
       // Authenticated request - get bearer token first
       // IMPORTANT: Cobalt cookie must be sent in Cookie header, NOT body
