@@ -316,8 +316,79 @@ app.post('/api/content/*', async (req, res) => {
       // Items endpoint with sharingSetting=2 for all shared content
       url = `${DDB_GAME_DATA_BASE}/items?sharingSetting=2`;
     } else if (endpoint === '/spells') {
-      // Try bulk spell fetch like items (without class filtering)
-      url = `${DDB_GAME_DATA_BASE}/spells`;
+      // Spells endpoint - fetch by spell level (0-9)
+      // D&D Beyond requires level parameter, so we fetch each level separately
+      const spellsMap = new Map(); // Use Map to deduplicate by spell ID
+
+      // Get bearer token first if authenticated
+      let bearerToken = null;
+      if (cobaltCookie) {
+        const authResponse = await fetch(`${DDB_AUTH_SERVICE}/cobalt-token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cookie': `CobaltSession=${cobaltCookie}`,
+            'User-Agent': 'Foundry-VTT-DDB-Importer/1.0'
+          }
+        });
+
+        if (!authResponse.ok) {
+          throw new Error('Authentication failed');
+        }
+
+        const authData = await authResponse.json();
+        if (!authData.token) {
+          throw new Error('No token received');
+        }
+        bearerToken = authData.token;
+      }
+
+      // Fetch spells for each level (0 = cantrips, 1-9 = spell levels)
+      for (let level = 0; level <= 9; level++) {
+        try {
+          const levelUrl = `${DDB_GAME_DATA_BASE}/spells?level=${level}`;
+
+          const headers = {
+            'User-Agent': 'Foundry-VTT-DDB-Importer/1.0',
+            'Accept': 'application/json'
+          };
+
+          if (bearerToken) {
+            headers['Authorization'] = `Bearer ${bearerToken}`;
+          }
+
+          const response = await fetch(levelUrl, { headers });
+
+          console.log(`[Level ${level}] Response status: ${response.status} ${response.statusText}`);
+
+          if (response.ok) {
+            const levelData = await response.json();
+            const spells = levelData?.data || levelData || [];
+
+            // Process each spell
+            if (Array.isArray(spells)) {
+              spells.forEach(spell => {
+                const spellId = spell.id;
+                if (!spellsMap.has(spellId)) {
+                  // Add spell (no deduplication needed since we're fetching by level)
+                  spellsMap.set(spellId, spell);
+                }
+              });
+              console.log(`[Level ${level}] Found ${spells.length} spells`);
+            }
+          }
+        } catch (levelError) {
+          console.warn(`Failed to fetch level ${level} spells:`, levelError.message);
+          // Continue with other levels even if one fails
+        }
+      }
+
+      // Convert Map to array and return
+      data = Array.from(spellsMap.values());
+
+      console.log(`Fetched ${data.length} total unique spells across all levels`);
+
+      return res.json(data);
     } else if (endpoint === '/sources') {
       // Sources don't exist as an endpoint - this should fall back to local
       throw new Error('Sources endpoint not available from D&D Beyond API');
