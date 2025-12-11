@@ -32,6 +32,7 @@ import { Cache } from './cache.js';
 import { getBearerToken, validateCobaltCookie as validateCobalt, getCacheId } from './auth.js';
 import { DDB_URLS, CACHE_TTL, CONSTANTS } from './config.js';
 import { fetchAllSpells } from './spells.js';
+import { fetchAllItems } from './items.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -324,8 +325,25 @@ app.post('/api/content/*', async (req, res) => {
 
     // Map endpoints to correct D&D Beyond game-data URLs
     if (endpoint === '/items') {
-      // Items endpoint with sharingSetting=2 for all shared content
-      url = `${DDB_GAME_DATA_BASE}/items?sharingSetting=2`;
+      // NEW: Use enhanced item fetching with source book extraction
+      const cacheId = getCacheId(cobaltCookie);
+
+      // Check cache first
+      const cached = itemsCache.exists(cacheId);
+      if (cached.exists) {
+        console.log('[ITEMS] Returning cached items');
+        return res.json(cached.data);
+      }
+
+      // Fetch items with enhanced data (source books, etc.)
+      console.log('[ITEMS] Fetching enhanced item data...');
+      data = await fetchAllItems(cobaltCookie);
+
+      // Cache the result
+      itemsCache.add(cacheId, data);
+
+      console.log(`[ITEMS] Returning ${data.length} enhanced items`);
+      return res.json(data);
 
     } else if (endpoint === '/spells') {
       // NEW: Use enhanced spell fetching with class availability
