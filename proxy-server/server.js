@@ -27,6 +27,12 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import compression from 'compression';
 
+// Import new modules
+import { Cache } from './cache.js';
+import { getBearerToken, validateCobaltCookie as validateCobalt, getCacheId } from './auth.js';
+import { DDB_URLS, CACHE_TTL, CONSTANTS } from './config.js';
+import { fetchAllSpells } from './spells.js';
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -35,15 +41,18 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 // Set to 1 for single reverse proxy (Render's load balancer)
 app.set('trust proxy', 1);
 
-// D&D Beyond API endpoints
-const DDB_AUTH_SERVICE = 'https://auth-service.dndbeyond.com/v1';
-const DDB_CHARACTER_SERVICE = 'https://character-service.dndbeyond.com/character/v5';
-// Game data endpoints are under character service, not www.dndbeyond.com
+// D&D Beyond API endpoints (legacy constants for backward compatibility)
+const DDB_AUTH_SERVICE = DDB_URLS.authService;
+const DDB_CHARACTER_SERVICE = DDB_URLS.characterService;
 const DDB_GAME_DATA_BASE = `${DDB_CHARACTER_SERVICE}/game-data`;
 
-// Simple in-memory cache for anonymous data (not user-specific)
+// Create cache instances with TTL-based expiration
+const spellsCache = new Cache('SPELLS', CACHE_TTL.SPELLS);
+const itemsCache = new Cache('ITEMS', CACHE_TTL.ITEMS);
+
+// Legacy cache for backward compatibility (deprecated)
 const cache = new Map();
-const CACHE_TTL = 3600000; // 1 hour
+const CACHE_TTL_LEGACY = 3600000; // 1 hour
 
 // ============================================================================
 // MIDDLEWARE
@@ -97,13 +106,14 @@ app.use((req, res, next) => {
 // ============================================================================
 
 /**
- * Get cached response if available and not expired
+ * Get cached response if available and not expired (LEGACY - for backward compatibility)
+ * @deprecated Use Cache instances (spellsCache, itemsCache) instead
  */
 function getCached(key) {
   const cached = cache.get(key);
   if (!cached) return null;
 
-  if (Date.now() - cached.timestamp > CACHE_TTL) {
+  if (Date.now() - cached.timestamp > CACHE_TTL_LEGACY) {
     cache.delete(key);
     return null;
   }
@@ -112,7 +122,8 @@ function getCached(key) {
 }
 
 /**
- * Set cache with timestamp
+ * Set cache with timestamp (LEGACY - for backward compatibility)
+ * @deprecated Use Cache instances (spellsCache, itemsCache) instead
  */
 function setCache(key, data) {
   cache.set(key, {
@@ -169,11 +180,15 @@ async function makeAuthenticatedRequest(url, cobaltCookie, options = {}) {
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    version: '1.0.117',
+    version: '1.1.0',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: process.memoryUsage(),
-    environment: NODE_ENV
+    environment: NODE_ENV,
+    caches: {
+      spells: spellsCache.getStats(),
+      items: itemsCache.getStats()
+    }
   });
 });
 
@@ -193,10 +208,14 @@ app.get('/stats', (req, res) => {
   }
 
   res.json({
-    cacheSize: cache.size,
+    version: '1.1.0',
     uptime: process.uptime(),
     memory: process.memoryUsage(),
-    version: '1.0.117'
+    caches: {
+      spells: spellsCache.getStats(),
+      items: itemsCache.getStats(),
+      legacy: cache.size
+    }
   });
 });
 
@@ -239,30 +258,22 @@ app.post('/api/validate-cookie', validateCobaltCookie, async (req, res) => {
   const { cobaltCookie } = req.body;
 
   try {
-    // Exchange Cobalt cookie for bearer token using D&D Beyond's auth service
-    // IMPORTANT: Cobalt cookie must be sent in Cookie header, NOT body
-    const authResponse = await fetch(`${DDB_AUTH_SERVICE}/cobalt-token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': `CobaltSession=${cobaltCookie}`,
-        'User-Agent': 'Foundry-VTT-DDB-Importer/1.0'
-      }
-    });
+    // Use new auth module to validate and get bearer token
+    const result = await validateCobalt(cobaltCookie);
 
-    if (!authResponse.ok) {
-      throw new Error('Invalid Cobalt cookie');
+    if (!result.valid) {
+      return res.status(401).json({
+        valid: false,
+        message: result.message || 'Cookie is invalid or expired'
+      });
     }
 
-    const authData = await authResponse.json();
-
-    if (!authData.token || authData.token.length === 0) {
-      throw new Error('No token received');
-    }
+    // Get the bearer token (will be cached)
+    const token = await getBearerToken(cobaltCookie);
 
     res.json({
       valid: true,
-      token: authData.token
+      token: token
     });
 
   } catch (error) {
@@ -309,86 +320,34 @@ app.post('/api/content/*', async (req, res) => {
 
   try {
     let url;
-    let data; // Declare data at the top to avoid initialization errors
+    let data;
+
     // Map endpoints to correct D&D Beyond game-data URLs
-    // Based on MrPrimate's ddb-proxy implementation
     if (endpoint === '/items') {
       // Items endpoint with sharingSetting=2 for all shared content
       url = `${DDB_GAME_DATA_BASE}/items?sharingSetting=2`;
+
     } else if (endpoint === '/spells') {
-      // Spells endpoint - fetch by spell level (0-9)
-      // D&D Beyond requires level parameter, so we fetch each level separately
-      const spellsMap = new Map(); // Use Map to deduplicate by spell ID
+      // NEW: Use enhanced spell fetching with class availability
+      const cacheId = getCacheId(cobaltCookie);
 
-      // Get bearer token first if authenticated
-      let bearerToken = null;
-      if (cobaltCookie) {
-        const authResponse = await fetch(`${DDB_AUTH_SERVICE}/cobalt-token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cookie': `CobaltSession=${cobaltCookie}`,
-            'User-Agent': 'Foundry-VTT-DDB-Importer/1.0'
-          }
-        });
-
-        if (!authResponse.ok) {
-          throw new Error('Authentication failed');
-        }
-
-        const authData = await authResponse.json();
-        if (!authData.token) {
-          throw new Error('No token received');
-        }
-        bearerToken = authData.token;
+      // Check cache first
+      const cached = spellsCache.exists(cacheId);
+      if (cached.exists) {
+        console.log('[SPELLS] Returning cached spells');
+        return res.json(cached.data);
       }
 
-      // Fetch spells for each level (0 = cantrips, 1-9 = spell levels)
-      for (let level = 0; level <= 9; level++) {
-        try {
-          const levelUrl = `${DDB_GAME_DATA_BASE}/spells?level=${level}`;
+      // Fetch spells with enhanced data (class availability, ritual, concentration, etc.)
+      console.log('[SPELLS] Fetching enhanced spell data...');
+      data = await fetchAllSpells(cobaltCookie);
 
-          const headers = {
-            'User-Agent': 'Foundry-VTT-DDB-Importer/1.0',
-            'Accept': 'application/json'
-          };
+      // Cache the result
+      spellsCache.add(cacheId, data);
 
-          if (bearerToken) {
-            headers['Authorization'] = `Bearer ${bearerToken}`;
-          }
-
-          const response = await fetch(levelUrl, { headers });
-
-          console.log(`[Level ${level}] Response status: ${response.status} ${response.statusText}`);
-
-          if (response.ok) {
-            const levelData = await response.json();
-            const spells = levelData?.data || levelData || [];
-
-            // Process each spell
-            if (Array.isArray(spells)) {
-              spells.forEach(spell => {
-                const spellId = spell.id;
-                if (!spellsMap.has(spellId)) {
-                  // Add spell (no deduplication needed since we're fetching by level)
-                  spellsMap.set(spellId, spell);
-                }
-              });
-              console.log(`[Level ${level}] Found ${spells.length} spells`);
-            }
-          }
-        } catch (levelError) {
-          console.warn(`Failed to fetch level ${level} spells:`, levelError.message);
-          // Continue with other levels even if one fails
-        }
-      }
-
-      // Convert Map to array and return
-      data = Array.from(spellsMap.values());
-
-      console.log(`Fetched ${data.length} total unique spells across all levels`);
-
+      console.log(`[SPELLS] Returning ${data.length} enhanced spells`);
       return res.json(data);
+
     } else if (endpoint === '/sources') {
       // Sources don't exist as an endpoint - this should fall back to local
       throw new Error('Sources endpoint not available from D&D Beyond API');
@@ -398,32 +357,17 @@ app.post('/api/content/*', async (req, res) => {
     }
 
     if (cobaltCookie) {
-      // Authenticated request - get bearer token first
-      // IMPORTANT: Cobalt cookie must be sent in Cookie header, NOT body
-      const authResponse = await fetch(`${DDB_AUTH_SERVICE}/cobalt-token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cookie': `CobaltSession=${cobaltCookie}`,
-          'User-Agent': 'Foundry-VTT-DDB-Importer/1.0'
-        }
-      });
+      // Authenticated request - use new auth module
+      console.log(`[API] Fetching ${endpoint} with authentication`);
 
-      if (!authResponse.ok) {
-        throw new Error('Authentication failed');
-      }
-
-      const authData = await authResponse.json();
-
-      if (!authData.token) {
-        throw new Error('No token received');
-      }
+      // Get bearer token (cached or fetch new)
+      const bearerToken = await getBearerToken(cobaltCookie);
 
       // Make authenticated request with bearer token
       const response = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${authData.token}`,
-          'User-Agent': 'Foundry-VTT-DDB-Importer/1.0',
+          'Authorization': `Bearer ${bearerToken}`,
+          'User-Agent': CONSTANTS.USER_AGENT,
           'Accept': 'application/json'
         }
       });
@@ -433,11 +377,14 @@ app.post('/api/content/*', async (req, res) => {
       }
 
       data = await response.json();
+
     } else {
       // Anonymous request (public data)
+      console.log(`[API] Fetching ${endpoint} anonymously`);
+
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'Foundry-VTT-DDB-Importer/1.0',
+          'User-Agent': CONSTANTS.USER_AGENT,
           'Accept': 'application/json'
         }
       });
@@ -522,7 +469,13 @@ function gracefulShutdown(signal) {
 
   server.close(() => {
     console.log('Server closed');
+
+    // Clear all caches
+    spellsCache.clear();
+    itemsCache.clear();
     cache.clear();
+
+    console.log('Caches cleared');
     process.exit(0);
   });
 
