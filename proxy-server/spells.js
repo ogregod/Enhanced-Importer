@@ -137,10 +137,24 @@ async function fetchSpellsByLevel(level, cobaltCookie) {
     // Get auth headers (with cached bearer token if available)
     const headers = await getAuthHeaders(cobaltCookie, true);
 
+    // DEBUG: Log request details
+    console.log(`[SPELLS DEBUG] Level ${level} Request:`);
+    console.log(`  URL: ${url}`);
+    console.log(`  Headers:`, JSON.stringify(headers, null, 2));
+
     const response = await fetch(url, { headers });
 
+    // DEBUG: Log response details
+    console.log(`[SPELLS DEBUG] Level ${level} Response:`);
+    console.log(`  Status: ${response.status} ${response.statusText}`);
+    console.log(`  Headers:`, JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
+
     if (!response.ok) {
-      console.warn(`[SPELLS] Level ${level} error: ${response.status} ${response.statusText}`);
+      // Try to get error body
+      const errorText = await response.text();
+      console.error(`[SPELLS ERROR] Level ${level}:`);
+      console.error(`  Status: ${response.status} ${response.statusText}`);
+      console.error(`  Body: ${errorText}`);
       return [];
     }
 
