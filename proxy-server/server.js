@@ -363,8 +363,9 @@ app.post('/api/content/*', async (req, res) => {
       // Get bearer token (cached or fetch new)
       const bearerToken = await getBearerToken(cobaltCookie);
 
-      // Make authenticated request with bearer token
+      // Make authenticated GET request with bearer token (no Content-Type)
       const response = await fetch(url, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${bearerToken}`,
           'User-Agent': CONSTANTS.USER_AGENT,

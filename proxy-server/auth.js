@@ -87,14 +87,19 @@ export async function getBearerToken(cobaltCookie) {
  *
  * @param {string} cobaltCookie - User's D&D Beyond session cookie
  * @param {boolean} requireAuth - Whether to fetch bearer token now (default: false)
+ * @param {boolean} includeContentType - Whether to include Content-Type header (default: false, only for POST/PUT)
  * @returns {Promise<object>} - Headers object for fetch requests
  */
-export async function getAuthHeaders(cobaltCookie, requireAuth = false) {
+export async function getAuthHeaders(cobaltCookie, requireAuth = false, includeContentType = false) {
   const headers = {
     'User-Agent': CONSTANTS.USER_AGENT,
-    'Accept': 'application/json',
-    'Content-Type': 'application/json'
+    'Accept': 'application/json'
   };
+
+  // Only include Content-Type for POST/PUT requests, not GET
+  if (includeContentType) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (requireAuth) {
     // Get bearer token (from cache or fetch new)
