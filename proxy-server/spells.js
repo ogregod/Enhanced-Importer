@@ -66,6 +66,10 @@ function enhanceSpellData(spell, className) {
     // Preserve all original data
     ...spell,
 
+    // CRITICAL: Explicitly extract name from definition to top level
+    id: spell.id || definition.id,
+    name: definition.name || spell.name || 'Unknown Spell',
+
     // Add class availability (will be merged later)
     _classes: [className], // Temporary field for merging
 
@@ -80,7 +84,13 @@ function enhanceSpellData(spell, className) {
     school: definition.school?.name || SPELL_SCHOOL_MAP[definition.schoolId] || definition.school || 'Unknown',
 
     // Ensure level is present
-    level: definition.level !== undefined ? definition.level : spell.level
+    level: definition.level !== undefined ? definition.level : spell.level,
+
+    // Extract other commonly used fields from definition
+    description: definition.description || spell.description,
+    castingTime: definition.castingTime || spell.castingTime,
+    range: definition.range || spell.range,
+    duration: definition.duration || spell.duration
   };
 }
 
