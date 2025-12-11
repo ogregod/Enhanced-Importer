@@ -111,10 +111,39 @@ export const SPELL_SCHOOL_MAP = {
   8: 'Transmutation'
 };
 
+// D&D Beyond Source Book IDs to names mapping
+export const SOURCE_BOOK_MAP = {
+  1: 'Player\'s Handbook',
+  2: 'Monster Manual',
+  3: 'Dungeon Master\'s Guide',
+  4: 'Sword Coast Adventurer\'s Guide',
+  6: 'Volo\'s Guide to Monsters',
+  9: 'Xanathar\'s Guide to Everything',
+  10: 'Mordenkainen\'s Tome of Foes',
+  17: 'Wayfinder\'s Guide to Eberron',
+  28: 'Acquisitions Incorporated',
+  37: 'Eberron: Rising from the Last War',
+  39: 'Unearthed Arcana',
+  40: 'Explorer\'s Guide to Wildemount',
+  51: 'Tasha\'s Cauldron of Everything',
+  52: 'Van Richten\'s Guide to Ravenloft',
+  55: 'Fizban\'s Treasury of Dragons',
+  56: 'Strixhaven: A Curriculum of Chaos',
+  57: 'Mordenkainen Presents: Monsters of the Multiverse',
+  67: 'Spelljammer: Adventures in Space',
+  73: 'Bigby Presents: Glory of the Giants',
+  76: 'The Book of Many Things',
+  77: 'Planescape: Adventures in the Multiverse',
+  79: 'Phandelver and Below: The Shattered Obelisk',
+  87: 'Vecna: Eve of Ruin',
+  // Add more as needed
+};
+
 export default {
   DDB_URLS,
   CACHE_TTL,
   CONSTANTS,
   CLASS_MAP,
-  SPELL_SCHOOL_MAP
+  SPELL_SCHOOL_MAP,
+  SOURCE_BOOK_MAP
 };

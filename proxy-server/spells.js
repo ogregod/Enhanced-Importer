@@ -13,7 +13,7 @@
  */
 
 import fetch from 'node-fetch';
-import { DDB_URLS, CONSTANTS, CLASS_MAP, SPELL_SCHOOL_MAP } from './config.js';
+import { DDB_URLS, CONSTANTS, CLASS_MAP, SPELL_SCHOOL_MAP, SOURCE_BOOK_MAP } from './config.js';
 import { getAuthHeaders } from './auth.js';
 
 /**
@@ -54,6 +54,32 @@ function extractComponents(spell) {
 }
 
 /**
+ * Extract source book name from spell sources array
+ * @param {object} spell - Spell object from D&D Beyond
+ * @returns {string} - Source book name
+ */
+function extractSourceBook(spell) {
+  const sources = spell.definition?.sources || spell.sources || [];
+
+  if (sources.length === 0) return 'Unknown Source';
+
+  // Get the first source (primary source book)
+  const primarySource = sources[0];
+
+  // Try to get source book name from the sourceBook property
+  if (primarySource.sourceBook) {
+    return primarySource.sourceBook;
+  }
+
+  // Fall back to mapping sourceId to source book name
+  if (primarySource.sourceId && SOURCE_BOOK_MAP[primarySource.sourceId]) {
+    return SOURCE_BOOK_MAP[primarySource.sourceId];
+  }
+
+  return 'Unknown Source';
+}
+
+/**
  * Enhance spell object with additional metadata
  * @param {object} spell - Original spell object from D&D Beyond
  * @param {string} className - Name of the class this spell was fetched for
@@ -90,7 +116,10 @@ function enhanceSpellData(spell, className) {
     description: definition.description || spell.description,
     castingTime: definition.castingTime || spell.castingTime,
     range: definition.range || spell.range,
-    duration: definition.duration || spell.duration
+    duration: definition.duration || spell.duration,
+
+    // Extract source book name
+    sourceBook: extractSourceBook(spell)
   };
 }
 
