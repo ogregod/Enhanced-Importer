@@ -14,8 +14,11 @@ export const DDB_URLS = {
   items: (sharingSetting = 2) =>
     `${DDB_URLS.characterService}/game-data/items?sharingSetting=${sharingSetting}`,
 
-  spells: (level) =>
-    `${DDB_URLS.characterService}/game-data/spells?level=${level}`,
+  // Spells by class (correct D&D Beyond API format)
+  spells: (classId, classLevel = 20, campaignId = null) => {
+    const campaign = campaignId ? `&campaignId=${campaignId}` : '';
+    return `${DDB_URLS.characterService}/game-data/spells?classId=${classId}&classLevel=${classLevel}&sharingSetting=2${campaign}`;
+  },
 
   character: (characterId) =>
     `${DDB_URLS.characterService}/character/${characterId}`,
@@ -56,8 +59,26 @@ export const CONSTANTS = {
   // User agent for API requests
   USER_AGENT: 'Foundry-VTT-DDB-Importer/1.1.0',
 
-  // Spell levels (0 = cantrips, 1-9 = spell levels)
-  SPELL_LEVELS: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  // Max class level for fetching all available spells
+  MAX_CLASS_LEVEL: 20,
+
+  // Spellcasting class IDs (from ddb-proxy)
+  SPELLCASTING_CLASSES: [
+    { id: 1, name: 'Bard' },
+    { id: 2, name: 'Cleric' },
+    { id: 3, name: 'Druid' },
+    { id: 4, name: 'Paladin' },
+    { id: 5, name: 'Ranger' },
+    { id: 6, name: 'Sorcerer' },
+    { id: 7, name: 'Warlock' },
+    { id: 8, name: 'Wizard' },
+    { id: 9, name: 'Barbarian' },  // Path of Wild Magic, etc.
+    { id: 10, name: 'Fighter' },    // Eldritch Knight
+    { id: 11, name: 'Monk' },       // Way of the Four Elements
+    { id: 12, name: 'Rogue' },      // Arcane Trickster
+    { id: 252717, name: 'Artificer' },
+    { id: 357975, name: 'Blood Hunter' }
+  ]
 };
 
 // D&D Beyond Class IDs to names mapping

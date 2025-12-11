@@ -2,11 +2,14 @@
  * Spells Module
  *
  * Handles fetching and processing spell data from D&D Beyond:
- * - Fetches spells across all levels (0-9) in parallel
+ * - Fetches spells by class (Wizard, Sorcerer, etc.) at max level
  * - Extracts class availability for each spell
  * - Extracts ritual, concentration, and component data
  * - Filters Unearthed Arcana content
  * - Deduplicates spells by ID
+ *
+ * NOTE: D&D Beyond API requires classId and classLevel parameters.
+ * We fetch for all spellcasting classes at level 20 to get complete spell lists.
  */
 
 import fetch from 'node-fetch';
@@ -35,49 +38,6 @@ function filterUnearthedArcana(spells) {
 }
 
 /**
- * Extract class availability from spell data
- * @param {object} spell - Spell object from D&D Beyond
- * @returns {Array<string>} - Array of class names
- */
-function extractClassAvailability(spell) {
-  const classes = [];
-
-  // D&D Beyond stores class info in definition.classes
-  const spellClasses = spell.definition?.classes || spell.classes || [];
-
-  for (const classInfo of spellClasses) {
-    // classInfo can be {id: 12, name: "Wizard"} or just {id: 12}
-    const className = classInfo.name || CLASS_MAP[classInfo.id];
-
-    if (className && !classes.includes(className)) {
-      classes.push(className);
-    }
-  }
-
-  return classes.sort(); // Sort alphabetically for consistency
-}
-
-/**
- * Extract subclass availability from spell data
- * @param {object} spell - Spell object from D&D Beyond
- * @returns {Array<string>} - Array of subclass names
- */
-function extractSubclassAvailability(spell) {
-  const subclasses = [];
-
-  const spellSubclasses = spell.definition?.subclasses || spell.subclasses || [];
-
-  for (const subclassInfo of spellSubclasses) {
-    const subclassName = subclassInfo.name;
-    if (subclassName && !subclasses.includes(subclassName)) {
-      subclasses.push(subclassName);
-    }
-  }
-
-  return subclasses.sort();
-}
-
-/**
  * Extract component information from spell
  * @param {object} spell - Spell object from D&D Beyond
  * @returns {object} - Component details
@@ -96,18 +56,18 @@ function extractComponents(spell) {
 /**
  * Enhance spell object with additional metadata
  * @param {object} spell - Original spell object from D&D Beyond
+ * @param {string} className - Name of the class this spell was fetched for
  * @returns {object} - Enhanced spell object
  */
-function enhanceSpellData(spell) {
+function enhanceSpellData(spell, className) {
   const definition = spell.definition || spell;
 
   return {
     // Preserve all original data
     ...spell,
 
-    // Add enhanced fields
-    availableToClasses: extractClassAvailability(spell),
-    availableToSubclasses: extractSubclassAvailability(spell),
+    // Add class availability (will be merged later)
+    _classes: [className], // Temporary field for merging
 
     // Ritual and concentration flags
     isRitual: definition.ritual === true || definition.isRitual === true,
@@ -125,92 +85,99 @@ function enhanceSpellData(spell) {
 }
 
 /**
- * Fetch spells for a specific spell level
- * @param {number} level - Spell level (0 = cantrips, 1-9 = spell levels)
+ * Fetch spells for a specific class
+ * @param {number} classId - D&D Beyond class ID
+ * @param {string} className - Class name (e.g., "Wizard")
  * @param {string} cobaltCookie - User's D&D Beyond session cookie
- * @returns {Promise<Array>} - Array of spell objects for this level
+ * @returns {Promise<Array>} - Array of spell objects for this class
  */
-async function fetchSpellsByLevel(level, cobaltCookie) {
-  const url = DDB_URLS.spells(level);
+async function fetchSpellsByClass(classId, className, cobaltCookie) {
+  // Fetch at max level (20) to get all spells available to the class
+  const url = DDB_URLS.spells(classId, CONSTANTS.MAX_CLASS_LEVEL);
 
   try {
     // Get auth headers (with cached bearer token if available)
     const headers = await getAuthHeaders(cobaltCookie, true);
 
-    // DEBUG: Log request details
-    console.log(`[SPELLS DEBUG] Level ${level} Request:`);
-    console.log(`  URL: ${url}`);
-    console.log(`  Headers:`, JSON.stringify(headers, null, 2));
+    console.log(`[SPELLS] Fetching spells for ${className} (classId: ${classId})...`);
 
     const response = await fetch(url, { headers });
 
-    // DEBUG: Log response details
-    console.log(`[SPELLS DEBUG] Level ${level} Response:`);
-    console.log(`  Status: ${response.status} ${response.statusText}`);
-    console.log(`  Headers:`, JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
-
     if (!response.ok) {
-      // Try to get error body
-      const errorText = await response.text();
-      console.error(`[SPELLS ERROR] Level ${level}:`);
-      console.error(`  Status: ${response.status} ${response.statusText}`);
-      console.error(`  Body: ${errorText}`);
+      console.warn(`[SPELLS] ${className} error: ${response.status} ${response.statusText}`);
       return [];
     }
 
     const json = await response.json();
 
-    // Handle both {data: [...]} and [...] response formats
-    const spells = json.data || json || [];
-
-    if (!Array.isArray(spells)) {
-      console.warn(`[SPELLS] Level ${level} returned non-array data`);
+    // D&D Beyond returns {success: true, data: [...]}
+    if (!json.success || !json.data) {
+      console.warn(`[SPELLS] ${className} returned invalid data`);
       return [];
     }
 
-    console.log(`[SPELLS] Level ${level}: Fetched ${spells.length} spells`);
-    return spells;
+    const spells = json.data;
+
+    if (!Array.isArray(spells)) {
+      console.warn(`[SPELLS] ${className} returned non-array data`);
+      return [];
+    }
+
+    console.log(`[SPELLS] ${className}: Fetched ${spells.length} spells`);
+    return spells.map(spell => enhanceSpellData(spell, className));
 
   } catch (error) {
-    console.warn(`[SPELLS] Level ${level} fetch failed:`, error.message);
+    console.warn(`[SPELLS] ${className} fetch failed:`, error.message);
     return [];
   }
 }
 
 /**
- * Fetch all spells across all levels (0-9)
+ * Fetch all spells across all spellcasting classes
  * Fetches in parallel for better performance
  *
  * @param {string} cobaltCookie - User's D&D Beyond session cookie
  * @returns {Promise<Array>} - Array of all spell objects with enhanced data
  */
 export async function fetchAllSpells(cobaltCookie) {
-  console.log('[SPELLS] Fetching spells across all levels (0-9)');
+  console.log(`[SPELLS] Fetching spells for ${CONSTANTS.SPELLCASTING_CLASSES.length} classes...`);
 
-  // Fetch all levels in parallel
-  const levelPromises = CONSTANTS.SPELL_LEVELS.map(level =>
-    fetchSpellsByLevel(level, cobaltCookie)
+  // Fetch all classes in parallel
+  const classPromises = CONSTANTS.SPELLCASTING_CLASSES.map(({ id, name }) =>
+    fetchSpellsByClass(id, name, cobaltCookie)
   );
 
-  const levelResults = await Promise.all(levelPromises);
+  const classResults = await Promise.all(classPromises);
 
-  // Flatten results and deduplicate by spell ID
+  // Flatten results and merge spells by ID
   const spellsMap = new Map();
 
-  for (const spells of levelResults) {
+  for (const spells of classResults) {
     for (const spell of spells) {
       const spellId = spell.id;
 
-      if (spellId && !spellsMap.has(spellId)) {
-        // Enhance spell data with class availability and metadata
-        const enhancedSpell = enhanceSpellData(spell);
-        spellsMap.set(spellId, enhancedSpell);
+      if (!spellId) continue;
+
+      if (spellsMap.has(spellId)) {
+        // Spell already exists - merge class availability
+        const existing = spellsMap.get(spellId);
+        existing._classes = [...new Set([...existing._classes, ...spell._classes])];
+      } else {
+        // New spell - add to map
+        spellsMap.set(spellId, spell);
       }
     }
   }
 
-  // Convert Map to array
-  const allSpells = Array.from(spellsMap.values());
+  // Convert Map to array and finalize class availability
+  const allSpells = Array.from(spellsMap.values()).map(spell => {
+    const { _classes, ...rest } = spell;
+    return {
+      ...rest,
+      availableToClasses: _classes.sort(), // Replace temporary _classes with final availableToClasses
+      availableToSubclasses: [] // TODO: Extract subclass availability if needed
+    };
+  });
 
   // Filter out Unearthed Arcana content
   const filteredSpells = filterUnearthedArcana(allSpells);
