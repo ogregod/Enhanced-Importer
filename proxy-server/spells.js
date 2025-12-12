@@ -195,35 +195,37 @@ export async function fetchAllSpells(cobaltCookie) {
 
   const classResults = await Promise.all(classPromises);
 
-  // Flatten results and merge spells by ID
+  // Flatten results and merge spells by NAME (not ID - D&D Beyond uses different IDs per class!)
   const spellsMap = new Map();
   let mergeCount = 0;
+  let skippedCount = 0;
 
   for (const spells of classResults) {
     for (const spell of spells) {
-      const spellId = spell.id;
+      const spellName = spell.name;
 
-      if (!spellId) {
-        console.warn('[SPELLS] Skipping spell with no ID:', spell.name || 'Unknown');
+      if (!spellName) {
+        console.warn('[SPELLS] Skipping spell with no name:', spell.id || 'Unknown ID');
+        skippedCount++;
         continue;
       }
 
-      if (spellsMap.has(spellId)) {
+      // Use spell name as key (D&D Beyond uses different IDs for same spell across classes!)
+      if (spellsMap.has(spellName)) {
         // Spell already exists - merge class availability
-        const existing = spellsMap.get(spellId);
+        const existing = spellsMap.get(spellName);
         const beforeClasses = [...existing._classes];
         existing._classes = [...new Set([...existing._classes, ...spell._classes])];
         mergeCount++;
-        console.log(`[SPELLS] Merged spell ID ${spellId} "${spell.name}": ${beforeClasses.join(',')} + ${spell._classes.join(',')} = ${existing._classes.join(',')}`);
+        console.log(`[SPELLS] Merged "${spellName}": ${beforeClasses.join(',')} + ${spell._classes.join(',')} = ${existing._classes.join(',')}`);
       } else {
         // New spell - add to map
-        console.log(`[SPELLS] New spell ID ${spellId} "${spell.name}" (${spell._classes.join(',')})`);
-        spellsMap.set(spellId, spell);
+        spellsMap.set(spellName, spell);
       }
     }
   }
 
-  console.log(`[SPELLS] Deduplication complete: ${mergeCount} spells merged`);
+  console.log(`[SPELLS] Deduplication complete: ${mergeCount} spells merged, ${skippedCount} skipped`);
 
   // Convert Map to array and finalize class availability
   const allSpells = Array.from(spellsMap.values()).map(spell => {
