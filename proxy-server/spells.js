@@ -197,23 +197,33 @@ export async function fetchAllSpells(cobaltCookie) {
 
   // Flatten results and merge spells by ID
   const spellsMap = new Map();
+  let mergeCount = 0;
 
   for (const spells of classResults) {
     for (const spell of spells) {
       const spellId = spell.id;
 
-      if (!spellId) continue;
+      if (!spellId) {
+        console.warn('[SPELLS] Skipping spell with no ID:', spell.name || 'Unknown');
+        continue;
+      }
 
       if (spellsMap.has(spellId)) {
         // Spell already exists - merge class availability
         const existing = spellsMap.get(spellId);
+        const beforeClasses = [...existing._classes];
         existing._classes = [...new Set([...existing._classes, ...spell._classes])];
+        mergeCount++;
+        console.log(`[SPELLS] Merged spell ID ${spellId} "${spell.name}": ${beforeClasses.join(',')} + ${spell._classes.join(',')} = ${existing._classes.join(',')}`);
       } else {
         // New spell - add to map
+        console.log(`[SPELLS] New spell ID ${spellId} "${spell.name}" (${spell._classes.join(',')})`);
         spellsMap.set(spellId, spell);
       }
     }
   }
+
+  console.log(`[SPELLS] Deduplication complete: ${mergeCount} spells merged`);
 
   // Convert Map to array and finalize class availability
   const allSpells = Array.from(spellsMap.values()).map(spell => {
