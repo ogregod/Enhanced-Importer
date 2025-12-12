@@ -316,7 +316,7 @@ app.post('/api/character/*', validateCobaltCookie, async (req, res) => {
  * Route: POST /api/content/*
  */
 app.post('/api/content/*', async (req, res) => {
-  const { cobaltCookie } = req.body;
+  const { cobaltCookie, bustCache } = req.body;
   const endpoint = req.path.replace('/api/content', '');
 
   try {
@@ -328,11 +328,15 @@ app.post('/api/content/*', async (req, res) => {
       // NEW: Use enhanced item fetching with source book extraction
       const cacheId = getCacheId(cobaltCookie);
 
-      // Check cache first
-      const cached = itemsCache.exists(cacheId);
-      if (cached.exists) {
-        console.log('[ITEMS] Returning cached items');
-        return res.json(cached.data);
+      // Check cache first (unless bustCache is true)
+      if (!bustCache) {
+        const cached = itemsCache.exists(cacheId);
+        if (cached.exists) {
+          console.log('[ITEMS] Returning cached items');
+          return res.json(cached.data);
+        }
+      } else {
+        console.log('[ITEMS] Cache busting enabled - forcing fresh fetch');
       }
 
       // Fetch items with enhanced data (source books, etc.)
@@ -349,11 +353,15 @@ app.post('/api/content/*', async (req, res) => {
       // NEW: Use enhanced spell fetching with class availability
       const cacheId = getCacheId(cobaltCookie);
 
-      // Check cache first
-      const cached = spellsCache.exists(cacheId);
-      if (cached.exists) {
-        console.log('[SPELLS] Returning cached spells');
-        return res.json(cached.data);
+      // Check cache first (unless bustCache is true)
+      if (!bustCache) {
+        const cached = spellsCache.exists(cacheId);
+        if (cached.exists) {
+          console.log('[SPELLS] Returning cached spells');
+          return res.json(cached.data);
+        }
+      } else {
+        console.log('[SPELLS] Cache busting enabled - forcing fresh fetch');
       }
 
       // Fetch spells with enhanced data (class availability, ritual, concentration, etc.)
