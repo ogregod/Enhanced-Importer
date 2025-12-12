@@ -19,6 +19,7 @@ import { getAuthHeaders } from './auth.js';
 function extractSourceBook(item) {
   const sources = item.sources || [];
   const sourceNames = [];
+  const unmappedIds = [];
 
   if (sources.length === 0) return 'Unknown Source';
 
@@ -34,12 +35,21 @@ function extractSourceBook(item) {
     else if (source.sourceId && SOURCE_BOOK_MAP[source.sourceId]) {
       sourceName = SOURCE_BOOK_MAP[source.sourceId];
     }
+    // Log unmapped source IDs
+    else if (source.sourceId) {
+      unmappedIds.push(source.sourceId);
+    }
 
     // Add to list if we found a name and it's not already in the list
     if (sourceName && !sourceNames.includes(sourceName)) {
       sourceNames.push(sourceName);
     }
   });
+
+  // Log any unmapped source IDs for debugging
+  if (unmappedIds.length > 0) {
+    console.warn(`[ITEMS] Unmapped source IDs for "${item.name}":`, unmappedIds.join(', '));
+  }
 
   return sourceNames.length > 0 ? sourceNames.join(', ') : 'Unknown Source';
 }
