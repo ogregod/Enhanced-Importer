@@ -54,29 +54,36 @@ function extractComponents(spell) {
 }
 
 /**
- * Extract source book name from spell sources array
+ * Extract ALL source book names from spell sources array
  * @param {object} spell - Spell object from D&D Beyond
- * @returns {string} - Source book name
+ * @returns {string} - Comma-separated source book names
  */
 function extractSourceBook(spell) {
   const sources = spell.definition?.sources || spell.sources || [];
+  const sourceNames = [];
 
   if (sources.length === 0) return 'Unknown Source';
 
-  // Get the first source (primary source book)
-  const primarySource = sources[0];
+  // Extract ALL source books (not just the first one)
+  sources.forEach(source => {
+    let sourceName = null;
 
-  // Try to get source book name from the sourceBook property
-  if (primarySource.sourceBook) {
-    return primarySource.sourceBook;
-  }
+    // Try to get source book name from the sourceBook property
+    if (source.sourceBook) {
+      sourceName = source.sourceBook;
+    }
+    // Fall back to mapping sourceId to source book name
+    else if (source.sourceId && SOURCE_BOOK_MAP[source.sourceId]) {
+      sourceName = SOURCE_BOOK_MAP[source.sourceId];
+    }
 
-  // Fall back to mapping sourceId to source book name
-  if (primarySource.sourceId && SOURCE_BOOK_MAP[primarySource.sourceId]) {
-    return SOURCE_BOOK_MAP[primarySource.sourceId];
-  }
+    // Add to list if we found a name and it's not already in the list
+    if (sourceName && !sourceNames.includes(sourceName)) {
+      sourceNames.push(sourceName);
+    }
+  });
 
-  return 'Unknown Source';
+  return sourceNames.length > 0 ? sourceNames.join(', ') : 'Unknown Source';
 }
 
 /**
