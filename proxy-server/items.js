@@ -110,11 +110,36 @@ function filterBySourceBooks(items, sourceBookIds) {
     return items; // No filter, return all
   }
 
-  return items.filter(item => {
+  // DEBUG: Log first item's source structure to understand format
+  if (items.length > 0) {
+    const firstItem = items[0];
+    const sources = firstItem.sources || [];
+    console.log('[ITEMS DEBUG] First item source structure:', {
+      itemName: firstItem.name,
+      sources: sources,
+      sourceIds: sources.map(s => s.sourceId),
+      requestedSourceIds: sourceBookIds
+    });
+  }
+
+  const filtered = items.filter(item => {
     const sources = item.sources || [];
     // Include item if ANY of its source IDs match the filter
     return sources.some(source => sourceBookIds.includes(source.sourceId));
   });
+
+  // DEBUG: Log filtering results
+  console.log(`[ITEMS DEBUG] Filtered ${items.length} items to ${filtered.length} items`);
+  if (filtered.length === 0 && items.length > 0) {
+    console.warn('[ITEMS DEBUG] No items matched source filter. Sample item sources:');
+    for (let i = 0; i < Math.min(5, items.length); i++) {
+      const item = items[i];
+      const sources = item.sources || [];
+      console.warn(`  - "${item.name}": sourceIds =`, sources.map(s => s.sourceId));
+    }
+  }
+
+  return filtered;
 }
 
 /**

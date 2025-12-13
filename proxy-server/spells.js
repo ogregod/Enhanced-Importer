@@ -200,11 +200,35 @@ function filterBySourceBooks(spells, sourceBookIds) {
     return spells; // No filter, return all
   }
 
-  return spells.filter(spell => {
+  // DEBUG: Log first spell's source structure to understand format
+  if (spells.length > 0) {
+    const firstSpell = spells[0];
+    const sources = firstSpell.definition?.sources || firstSpell.sources || [];
+    console.log('[SPELLS DEBUG] First spell source structure:', {
+      spellName: firstSpell.definition?.name || firstSpell.name,
+      sources: sources,
+      sourceIds: sources.map(s => s.sourceId),
+      requestedSourceIds: sourceBookIds
+    });
+  }
+
+  const filtered = spells.filter(spell => {
     const sources = spell.definition?.sources || spell.sources || [];
     // Include spell if ANY of its source IDs match the filter
     return sources.some(source => sourceBookIds.includes(source.sourceId));
   });
+
+  // DEBUG: If no spells matched, log some examples
+  if (filtered.length === 0 && spells.length > 0) {
+    console.warn('[SPELLS DEBUG] No spells matched source filter. Sample spell sources:');
+    for (let i = 0; i < Math.min(5, spells.length); i++) {
+      const spell = spells[i];
+      const sources = spell.definition?.sources || spell.sources || [];
+      console.warn(`  - "${spell.definition?.name || spell.name}": sourceIds =`, sources.map(s => s.sourceId));
+    }
+  }
+
+  return filtered;
 }
 
 /**
