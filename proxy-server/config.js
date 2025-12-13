@@ -122,8 +122,10 @@ export const SOURCE_BOOK_MAP = {
   10: 'Mordenkainen\'s Tome of Foes',
   13: 'Adventure Module', // TODO: Verify exact book name
   17: 'Wayfinder\'s Guide to Eberron',
+  25: 'Tomb of Annihilation',
   27: 'Guildmasters\' Guide to Ravnica',
   28: 'Acquisitions Incorporated',
+  31: 'Critical Role: Tal\'Dorei Campaign Setting',
   37: 'Eberron: Rising from the Last War',
   39: 'Unearthed Arcana',
   40: 'Explorer\'s Guide to Wildemount',
@@ -132,12 +134,17 @@ export const SOURCE_BOOK_MAP = {
   55: 'Fizban\'s Treasury of Dragons',
   56: 'Strixhaven: A Curriculum of Chaos',
   57: 'Mordenkainen Presents: Monsters of the Multiverse',
+  59: 'Acquisitions Incorporated', // Pride Silk Outfit
   67: 'Spelljammer: Adventures in Space',
   73: 'Bigby Presents: Glory of the Giants',
   76: 'The Book of Many Things',
   77: 'Planescape: Adventures in the Multiverse',
   79: 'Phandelver and Below: The Shattered Obelisk',
   87: 'Vecna: Eve of Ruin',
+  136: 'Dungeon Master\'s Guide', // Powered Armor (sci-fi variant rules)
+  145: '2024 Free Rules', // Basic equipment in 2024 rules
+  146: 'Dungeon Master\'s Guide', // Equipment tables and poisons
+  148: '2024 Free Rules', // Standard weapons, armor, and equipment
   162: '2024 Player\'s Handbook', // 2024 Core Rulebook Update
   // Add more as needed
 };
