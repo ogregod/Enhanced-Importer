@@ -129,18 +129,23 @@ export const SOURCE_BOOK_MAP = {
   37: 'Eberron: Rising from the Last War',
   39: 'Unearthed Arcana',
   40: 'Explorer\'s Guide to Wildemount',
+  38: 'Guildmasters\' Guide to Ravnica', // Encode Thoughts
+  44: 'Acquisitions Incorporated',
   51: 'Tasha\'s Cauldron of Everything',
   52: 'Van Richten\'s Guide to Ravenloft',
-  55: 'Fizban\'s Treasury of Dragons',
+  55: 'Fizban\'s Treasury of Dragons', // Items use this ID
   56: 'Strixhaven: A Curriculum of Chaos',
   57: 'Mordenkainen Presents: Monsters of the Multiverse',
-  59: 'Acquisitions Incorporated', // Pride Silk Outfit
+  59: 'Acquisitions Incorporated', // Pride Silk Outfit variant
+  66: 'Icewind Dale: Rime of the Frostmaiden',
   67: 'Spelljammer: Adventures in Space',
   73: 'Bigby Presents: Glory of the Giants',
   76: 'The Book of Many Things',
   77: 'Planescape: Adventures in the Multiverse',
   79: 'Phandelver and Below: The Shattered Obelisk',
+  81: 'Fizban\'s Treasury of Dragons', // Spells use this ID (different from items!)
   87: 'Vecna: Eve of Ruin',
+  123: 'Strixhaven: A Curriculum of Chaos', // Some spells use this ID
   136: 'Dungeon Master\'s Guide', // Powered Armor (sci-fi variant rules)
   145: '2024 Free Rules', // Basic equipment in 2024 rules
   146: 'Dungeon Master\'s Guide', // Equipment tables and poisons
