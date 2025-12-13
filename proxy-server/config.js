@@ -120,7 +120,9 @@ export const SOURCE_BOOK_MAP = {
   6: 'Volo\'s Guide to Monsters',
   9: 'Xanathar\'s Guide to Everything',
   10: 'Mordenkainen\'s Tome of Foes',
+  13: 'Adventure Module', // TODO: Verify exact book name
   17: 'Wayfinder\'s Guide to Eberron',
+  27: 'Guildmasters\' Guide to Ravnica',
   28: 'Acquisitions Incorporated',
   37: 'Eberron: Rising from the Last War',
   39: 'Unearthed Arcana',
@@ -136,6 +138,7 @@ export const SOURCE_BOOK_MAP = {
   77: 'Planescape: Adventures in the Multiverse',
   79: 'Phandelver and Below: The Shattered Obelisk',
   87: 'Vecna: Eve of Ruin',
+  162: '2024 Player\'s Handbook', // 2024 Core Rulebook Update
   // Add more as needed
 };
 

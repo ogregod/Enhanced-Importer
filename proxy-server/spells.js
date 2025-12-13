@@ -90,7 +90,8 @@ function extractSourceBook(spell) {
 
   // Log any unmapped source IDs for debugging
   if (unmappedIds.length > 0) {
-    console.warn(`[SPELLS] Unmapped source IDs for "${spell.name}":`, unmappedIds.join(', '));
+    const spellName = spell.definition?.name || spell.name || 'Unknown Spell';
+    console.warn(`[SPELLS] Unmapped source IDs for "${spellName}":`, unmappedIds.join(', '));
   }
 
   return sourceNames.length > 0 ? sourceNames.join(', ') : 'Unknown Source';
