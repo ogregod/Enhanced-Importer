@@ -100,12 +100,34 @@ function enhanceItemData(item) {
 }
 
 /**
+ * Filter items by source book IDs
+ * @param {Array} items - Array of item objects
+ * @param {Array<number>} sourceBookIds - Array of source book IDs to include
+ * @returns {Array} - Filtered item array
+ */
+function filterBySourceBooks(items, sourceBookIds) {
+  if (!sourceBookIds || sourceBookIds.length === 0) {
+    return items; // No filter, return all
+  }
+
+  return items.filter(item => {
+    const sources = item.sources || [];
+    // Include item if ANY of its source IDs match the filter
+    return sources.some(source => sourceBookIds.includes(source.sourceId));
+  });
+}
+
+/**
  * Fetch all items from D&D Beyond
  * @param {string} cobaltCookie - User's D&D Beyond session cookie
+ * @param {Array<number>} sourceBookIds - Optional array of source book IDs to filter by
  * @returns {Promise<Array>} - Array of enhanced item objects
  */
-export async function fetchAllItems(cobaltCookie) {
-  console.log('[ITEMS] Fetching items from D&D Beyond...');
+export async function fetchAllItems(cobaltCookie, sourceBookIds = null) {
+  const filterMsg = sourceBookIds && sourceBookIds.length > 0
+    ? ` (filtering by source IDs: ${sourceBookIds.join(', ')})`
+    : '';
+  console.log(`[ITEMS] Fetching items from D&D Beyond${filterMsg}...`);
 
   try {
     // Get auth headers (with cached bearer token if available)
@@ -133,7 +155,13 @@ export async function fetchAllItems(cobaltCookie) {
       throw new Error('Unexpected response format from D&D Beyond');
     }
 
-    console.log(`[ITEMS] Fetched ${items.length} items`);
+    console.log(`[ITEMS] Fetched ${items.length} items from D&D Beyond`);
+
+    // Filter by source books if specified (BEFORE enhancement)
+    if (sourceBookIds && sourceBookIds.length > 0) {
+      items = filterBySourceBooks(items, sourceBookIds);
+      console.log(`[ITEMS] After source filter: ${items.length} items`);
+    }
 
     // Enhance each item with source book information
     const enhancedItems = items.map(item => enhanceItemData(item));

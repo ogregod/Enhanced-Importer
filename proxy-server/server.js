@@ -30,7 +30,7 @@ import compression from 'compression';
 // Import new modules
 import { Cache } from './cache.js';
 import { getBearerToken, validateCobaltCookie as validateCobalt, getCacheId } from './auth.js';
-import { DDB_URLS, CACHE_TTL, CONSTANTS } from './config.js';
+import { DDB_URLS, CACHE_TTL, CONSTANTS, SOURCE_BOOK_MAP } from './config.js';
 import { fetchAllSpells } from './spells.js';
 import { fetchAllItems } from './items.js';
 
@@ -201,6 +201,19 @@ app.get('/ping', (req, res) => {
 });
 
 /**
+ * Get available source books
+ */
+app.get('/api/source-books', (req, res) => {
+  // Convert SOURCE_BOOK_MAP to array format for frontend
+  const sourceBooks = Object.entries(SOURCE_BOOK_MAP).map(([id, name]) => ({
+    id: parseInt(id),
+    name: name.replace(/\s*\/\/.*$/, '').trim() // Remove comments
+  })).sort((a, b) => a.name.localeCompare(b.name));
+
+  res.json({ sourceBooks });
+});
+
+/**
  * Stats endpoint (optional - can be disabled in production)
  */
 app.get('/stats', (req, res) => {
@@ -316,7 +329,7 @@ app.post('/api/character/*', validateCobaltCookie, async (req, res) => {
  * Route: POST /api/content/*
  */
 app.post('/api/content/*', async (req, res) => {
-  const { cobaltCookie, bustCache } = req.body;
+  const { cobaltCookie, bustCache, sourceBookIds } = req.body;
   const endpoint = req.path.replace('/api/content', '');
 
   try {
@@ -326,7 +339,11 @@ app.post('/api/content/*', async (req, res) => {
     // Map endpoints to correct D&D Beyond game-data URLs
     if (endpoint === '/items') {
       // NEW: Use enhanced item fetching with source book extraction
-      const cacheId = getCacheId(cobaltCookie);
+      const baseCacheId = getCacheId(cobaltCookie);
+      // Include sourceBookIds in cache key if provided
+      const cacheId = sourceBookIds && sourceBookIds.length > 0
+        ? `${baseCacheId}_sources_${sourceBookIds.sort().join('_')}`
+        : baseCacheId;
 
       // Check cache first (unless bustCache is true)
       if (!bustCache) {
@@ -341,7 +358,7 @@ app.post('/api/content/*', async (req, res) => {
 
       // Fetch items with enhanced data (source books, etc.)
       console.log('[ITEMS] Fetching enhanced item data...');
-      data = await fetchAllItems(cobaltCookie);
+      data = await fetchAllItems(cobaltCookie, sourceBookIds);
 
       // Cache the result
       itemsCache.add(cacheId, data);
@@ -351,7 +368,11 @@ app.post('/api/content/*', async (req, res) => {
 
     } else if (endpoint === '/spells') {
       // NEW: Use enhanced spell fetching with class availability
-      const cacheId = getCacheId(cobaltCookie);
+      const baseCacheId = getCacheId(cobaltCookie);
+      // Include sourceBookIds in cache key if provided
+      const cacheId = sourceBookIds && sourceBookIds.length > 0
+        ? `${baseCacheId}_sources_${sourceBookIds.sort().join('_')}`
+        : baseCacheId;
 
       // Check cache first (unless bustCache is true)
       if (!bustCache) {
@@ -366,7 +387,7 @@ app.post('/api/content/*', async (req, res) => {
 
       // Fetch spells with enhanced data (class availability, ritual, concentration, etc.)
       console.log('[SPELLS] Fetching enhanced spell data...');
-      data = await fetchAllSpells(cobaltCookie);
+      data = await fetchAllSpells(cobaltCookie, sourceBookIds);
 
       // Cache the result
       spellsCache.add(cacheId, data);

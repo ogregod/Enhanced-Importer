@@ -190,14 +190,36 @@ async function fetchSpellsByClass(classId, className, cobaltCookie) {
 }
 
 /**
+ * Filter spells by source book IDs
+ * @param {Array} spells - Array of spell objects
+ * @param {Array<number>} sourceBookIds - Array of source book IDs to include
+ * @returns {Array} - Filtered spell array
+ */
+function filterBySourceBooks(spells, sourceBookIds) {
+  if (!sourceBookIds || sourceBookIds.length === 0) {
+    return spells; // No filter, return all
+  }
+
+  return spells.filter(spell => {
+    const sources = spell.definition?.sources || spell.sources || [];
+    // Include spell if ANY of its source IDs match the filter
+    return sources.some(source => sourceBookIds.includes(source.sourceId));
+  });
+}
+
+/**
  * Fetch all spells across all spellcasting classes
  * Fetches in parallel for better performance
  *
  * @param {string} cobaltCookie - User's D&D Beyond session cookie
+ * @param {Array<number>} sourceBookIds - Optional array of source book IDs to filter by
  * @returns {Promise<Array>} - Array of all spell objects with enhanced data
  */
-export async function fetchAllSpells(cobaltCookie) {
-  console.log(`[SPELLS] Fetching spells for ${CONSTANTS.SPELLCASTING_CLASSES.length} classes...`);
+export async function fetchAllSpells(cobaltCookie, sourceBookIds = null) {
+  const filterMsg = sourceBookIds && sourceBookIds.length > 0
+    ? ` (filtering by source IDs: ${sourceBookIds.join(', ')})`
+    : '';
+  console.log(`[SPELLS] Fetching spells for ${CONSTANTS.SPELLCASTING_CLASSES.length} classes${filterMsg}...`);
 
   // Fetch all classes in parallel
   const classPromises = CONSTANTS.SPELLCASTING_CLASSES.map(({ id, name }) =>
@@ -249,9 +271,16 @@ export async function fetchAllSpells(cobaltCookie) {
   });
 
   // Filter out Unearthed Arcana content
-  const filteredSpells = filterUnearthedArcana(allSpells);
+  let filteredSpells = filterUnearthedArcana(allSpells);
 
   console.log(`[SPELLS] Total: ${filteredSpells.length} spells (${allSpells.length - filteredSpells.length} UA filtered)`);
+
+  // Filter by source books if specified
+  if (sourceBookIds && sourceBookIds.length > 0) {
+    const beforeSourceFilter = filteredSpells.length;
+    filteredSpells = filterBySourceBooks(filteredSpells, sourceBookIds);
+    console.log(`[SPELLS] After source filter: ${filteredSpells.length} spells (${beforeSourceFilter - filteredSpells.length} filtered)`);
+  }
 
   // Log class availability stats
   const classStats = {};
