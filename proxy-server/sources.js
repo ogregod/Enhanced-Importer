@@ -22,20 +22,19 @@ const DDB_CONFIG_URL = 'https://www.dndbeyond.com/api/config/json';
  */
 export async function fetchDDBConfig() {
   // Check cache first
-  const cached = configCache.get('config');
-  if (cached) {
+  const cached = configCache.exists('config');
+  if (cached.exists && cached.data) {
     console.log('[SOURCES] Using cached D&D Beyond config');
-    return cached;
+    return cached.data;
   }
 
   try {
     console.log('[SOURCES] Fetching D&D Beyond config from API...');
     const response = await fetch(DDB_CONFIG_URL, {
       headers: {
-        'User-Agent': 'Enhanced-Importer/1.1.0',
+        'User-Agent': 'Enhanced-Importer/1.2.0',
         'Accept': 'application/json'
-      },
-      timeout: 10000
+      }
     });
 
     if (!response.ok) {
@@ -45,7 +44,7 @@ export async function fetchDDBConfig() {
     const config = await response.json();
 
     // Cache the config
-    configCache.set('config', config);
+    configCache.add('config', config);
     console.log(`[SOURCES] Fetched D&D Beyond config (${config.sources?.length || 0} sources)`);
 
     return config;
