@@ -10,7 +10,7 @@
 import fetch from 'node-fetch';
 import { DDB_URLS, CONSTANTS } from './config.js';
 import { getAuthHeaders } from './auth.js';
-import { buildSourceMap, extractSourceName } from './sources.js';
+import { buildSourceMap, extractSourceName, getAllSources } from './sources.js';
 
 /**
  * Extract ALL source book names from item sources array
@@ -186,13 +186,52 @@ export async function fetchAllItems(cobaltCookie, sourceBookIds = null) {
 
     console.log(`[ITEMS] Total: ${filteredItems.length} items (${enhancedItems.length - filteredItems.length} UA filtered)`);
 
-    // Log source stats
+    // Log detailed source stats
     const sourceStats = {};
     for (const item of filteredItems) {
       const source = item.sourceBook || 'Unknown';
       sourceStats[source] = (sourceStats[source] || 0) + 1;
     }
-    console.log('[ITEMS] Source distribution:', sourceStats);
+
+    // Create ownership report
+    console.log('\n========================================');
+    console.log('ITEM IMPORT REPORT BY SOURCE BOOK');
+    console.log('========================================\n');
+
+    // Get all sources from the map
+    const allSources = await getAllSources();
+    const sourceBookMap = new Map();
+
+    // Build a map of source names to their stats
+    for (const source of allSources) {
+      sourceBookMap.set(source.name, {
+        name: source.name,
+        itemCount: sourceStats[source.name] || 0,
+        owned: (sourceStats[source.name] || 0) > 0
+      });
+    }
+
+    // Sort by item count (highest first), then alphabetically
+    const sortedSources = Array.from(sourceBookMap.values())
+      .sort((a, b) => {
+        if (b.itemCount !== a.itemCount) {
+          return b.itemCount - a.itemCount; // Sort by count descending
+        }
+        return a.name.localeCompare(b.name); // Then alphabetically
+      });
+
+    // Display report
+    for (const source of sortedSources) {
+      const ownership = source.owned ? '(Owned)' : '(Not Owned)';
+      const itemCount = source.itemCount.toString().padStart(4, ' ');
+      console.log(`${source.name.padEnd(50)} ${ownership.padEnd(12)} ${itemCount} Items`);
+    }
+
+    console.log('\n========================================');
+    console.log(`Total Sources: ${sortedSources.length}`);
+    console.log(`Owned Sources: ${sortedSources.filter(s => s.owned).length}`);
+    console.log(`Total Items: ${filteredItems.length}`);
+    console.log('========================================\n');
 
     return filteredItems;
 

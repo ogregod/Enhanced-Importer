@@ -15,7 +15,7 @@
 import fetch from 'node-fetch';
 import { DDB_URLS, CONSTANTS, CLASS_MAP, SPELL_SCHOOL_MAP } from './config.js';
 import { getAuthHeaders } from './auth.js';
-import { buildSourceMap, extractSourceName } from './sources.js';
+import { buildSourceMap, extractSourceName, getAllSources } from './sources.js';
 
 /**
  * Filter out Unearthed Arcana content (sourceId 39)
@@ -304,6 +304,53 @@ export async function fetchAllSpells(cobaltCookie, sourceBookIds = null) {
     }
   }
   console.log('[SPELLS] Class availability stats:', classStats);
+
+  // Log detailed source stats
+  const sourceStats = {};
+  for (const spell of filteredSpells) {
+    const source = spell.sourceBook || 'Unknown';
+    sourceStats[source] = (sourceStats[source] || 0) + 1;
+  }
+
+  // Create ownership report
+  console.log('\n========================================');
+  console.log('SPELL IMPORT REPORT BY SOURCE BOOK');
+  console.log('========================================\n');
+
+  // Get all sources from the map
+  const allSources = await getAllSources();
+  const sourceBookMap = new Map();
+
+  // Build a map of source names to their stats
+  for (const source of allSources) {
+    sourceBookMap.set(source.name, {
+      name: source.name,
+      spellCount: sourceStats[source.name] || 0,
+      owned: (sourceStats[source.name] || 0) > 0
+    });
+  }
+
+  // Sort by spell count (highest first), then alphabetically
+  const sortedSources = Array.from(sourceBookMap.values())
+    .sort((a, b) => {
+      if (b.spellCount !== a.spellCount) {
+        return b.spellCount - a.spellCount; // Sort by count descending
+      }
+      return a.name.localeCompare(b.name); // Then alphabetically
+    });
+
+  // Display report
+  for (const source of sortedSources) {
+    const ownership = source.owned ? '(Owned)' : '(Not Owned)';
+    const spellCount = source.spellCount.toString().padStart(4, ' ');
+    console.log(`${source.name.padEnd(50)} ${ownership.padEnd(12)} ${spellCount} Spells`);
+  }
+
+  console.log('\n========================================');
+  console.log(`Total Sources: ${sortedSources.length}`);
+  console.log(`Owned Sources: ${sortedSources.filter(s => s.owned).length}`);
+  console.log(`Total Spells: ${filteredSpells.length}`);
+  console.log('========================================\n');
 
   return filteredSpells;
 }
