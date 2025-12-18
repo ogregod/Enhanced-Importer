@@ -111,6 +111,21 @@ export const SPELL_SCHOOL_MAP = {
   8: 'Transmutation'
 };
 
+// Item rarity IDs to names mapping
+// IMPORTANT: Mundane (0) is different from Common (1)!
+// Mundane = non-magical items (rope, torches, basic weapons)
+// Common = magical items of common rarity
+export const RARITY_MAP = {
+  0: 'Mundane',      // Non-magical items
+  1: 'Common',       // Common magic items
+  2: 'Uncommon',     // Uncommon magic items
+  3: 'Rare',         // Rare magic items
+  4: 'Very Rare',    // Very Rare magic items
+  5: 'Legendary',    // Legendary magic items
+  6: 'Artifact',     // Artifact magic items
+  7: 'Varies'        // Varies (for some special items)
+};
+
 // D&D Beyond Source Book IDs to names mapping
 export const SOURCE_BOOK_MAP = {
   1: 'Player\'s Handbook',
@@ -160,5 +175,6 @@ export default {
   CONSTANTS,
   CLASS_MAP,
   SPELL_SCHOOL_MAP,
+  RARITY_MAP,
   SOURCE_BOOK_MAP
 };
