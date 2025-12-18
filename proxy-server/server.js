@@ -34,6 +34,7 @@ import { DDB_URLS, CACHE_TTL, CONSTANTS } from './config.js';
 import { fetchAllSpells } from './spells.js';
 import { fetchAllItems } from './items.js';
 import { getAllSources } from './sources.js';
+import { generateCombinedReport } from './reports.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -55,6 +56,16 @@ const itemsCache = new Cache('ITEMS', CACHE_TTL.ITEMS);
 // Legacy cache for backward compatibility (deprecated)
 const cache = new Map();
 const CACHE_TTL_LEGACY = 3600000; // 1 hour
+
+// Track recent imports for combined report generation
+const recentImports = {
+  items: null,
+  spells: null,
+  lastUpdate: {
+    items: 0,
+    spells: 0
+  }
+};
 
 // ============================================================================
 // MIDDLEWARE
@@ -375,13 +386,23 @@ app.post('/api/content/*', async (req, res) => {
 
       // Fetch items with enhanced data (source books, etc.)
       console.log('[ITEMS] Fetching enhanced item data...');
-      data = await fetchAllItems(cobaltCookie, sourceBookIds);
+      const itemsData = await fetchAllItems(cobaltCookie, sourceBookIds);
 
-      // Cache the result
-      itemsCache.add(cacheId, data);
+      // Store for combined report
+      recentImports.items = itemsData;
+      recentImports.lastUpdate.items = Date.now();
 
-      console.log(`[ITEMS] Returning ${data.length} enhanced items`);
-      return res.json(data);
+      // Cache the items array (for backward compatibility)
+      itemsCache.add(cacheId, itemsData.items);
+
+      // Generate combined report if both items and spells were fetched recently (within 5 minutes)
+      const timeDiff = Math.abs(recentImports.lastUpdate.items - recentImports.lastUpdate.spells);
+      if (recentImports.spells && timeDiff < 300000) { // 5 minutes
+        generateCombinedReport(recentImports.items, recentImports.spells);
+      }
+
+      console.log(`[ITEMS] Returning ${itemsData.items.length} enhanced items`);
+      return res.json(itemsData.items);
 
     } else if (endpoint === '/spells') {
       // NEW: Use enhanced spell fetching with class availability
@@ -404,13 +425,23 @@ app.post('/api/content/*', async (req, res) => {
 
       // Fetch spells with enhanced data (class availability, ritual, concentration, etc.)
       console.log('[SPELLS] Fetching enhanced spell data...');
-      data = await fetchAllSpells(cobaltCookie, sourceBookIds);
+      const spellsData = await fetchAllSpells(cobaltCookie, sourceBookIds);
 
-      // Cache the result
-      spellsCache.add(cacheId, data);
+      // Store for combined report
+      recentImports.spells = spellsData;
+      recentImports.lastUpdate.spells = Date.now();
 
-      console.log(`[SPELLS] Returning ${data.length} enhanced spells`);
-      return res.json(data);
+      // Cache the spells array (for backward compatibility)
+      spellsCache.add(cacheId, spellsData.spells);
+
+      // Generate combined report if both items and spells were fetched recently (within 5 minutes)
+      const timeDiff = Math.abs(recentImports.lastUpdate.items - recentImports.lastUpdate.spells);
+      if (recentImports.items && timeDiff < 300000) { // 5 minutes
+        generateCombinedReport(recentImports.items, recentImports.spells);
+      }
+
+      console.log(`[SPELLS] Returning ${spellsData.spells.length} enhanced spells`);
+      return res.json(spellsData.spells);
 
     } else if (endpoint === '/sources') {
       // Sources don't exist as an endpoint - this should fall back to local

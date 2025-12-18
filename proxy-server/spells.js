@@ -284,6 +284,19 @@ export async function fetchAllSpells(cobaltCookie, sourceBookIds = null) {
     };
   });
 
+  // IMPORTANT: Track ownership from ORIGINAL API response (before filtering)
+  // A book is "owned" if ANY of its sourceIds appear in the API response
+  const ownedSourceIds = new Set();
+  for (const spell of allSpells) {
+    const sources = spell.definition?.sources || spell.sources || [];
+    for (const source of sources) {
+      if (source.sourceId) {
+        ownedSourceIds.add(source.sourceId);
+      }
+    }
+  }
+  console.log(`[SPELLS] Detected ownership for ${ownedSourceIds.size} unique source IDs from API response`);
+
   // Filter out Unearthed Arcana content
   let filteredSpells = filterUnearthedArcana(allSpells);
 
@@ -312,47 +325,22 @@ export async function fetchAllSpells(cobaltCookie, sourceBookIds = null) {
     sourceStats[source] = (sourceStats[source] || 0) + 1;
   }
 
-  // Create ownership report
-  console.log('\n========================================');
-  console.log('SPELL IMPORT REPORT BY SOURCE BOOK');
-  console.log('========================================\n');
-
-  // Get all sources from the map
+  // Get all sources from D&D Beyond config
   const allSources = await getAllSources();
-  const sourceBookMap = new Map();
 
-  // Build a map of source names to their stats
+  // Build ownership map (sourceId -> owned status)
+  const ownershipBySourceId = new Map();
   for (const source of allSources) {
-    sourceBookMap.set(source.name, {
-      name: source.name,
-      spellCount: sourceStats[source.name] || 0,
-      owned: (sourceStats[source.name] || 0) > 0
-    });
+    ownershipBySourceId.set(source.id, ownedSourceIds.has(source.id));
   }
 
-  // Sort by spell count (highest first), then alphabetically
-  const sortedSources = Array.from(sourceBookMap.values())
-    .sort((a, b) => {
-      if (b.spellCount !== a.spellCount) {
-        return b.spellCount - a.spellCount; // Sort by count descending
-      }
-      return a.name.localeCompare(b.name); // Then alphabetically
-    });
-
-  // Display report
-  for (const source of sortedSources) {
-    const ownership = source.owned ? '(Owned)' : '(Not Owned)';
-    const spellCount = source.spellCount.toString().padStart(4, ' ');
-    console.log(`${source.name.padEnd(50)} ${ownership.padEnd(12)} ${spellCount} Spells`);
-  }
-
-  console.log('\n========================================');
-  console.log(`Total Sources: ${sortedSources.length}`);
-  console.log(`Owned Sources: ${sortedSources.filter(s => s.owned).length}`);
-  console.log(`Total Spells: ${filteredSpells.length}`);
-  console.log('========================================\n');
-
-  return filteredSpells;
+  // Return both filtered spells and ownership data for combined report
+  return {
+    spells: filteredSpells,
+    sourceStats,
+    ownershipBySourceId,
+    allSources
+  };
 }
 
 export default {

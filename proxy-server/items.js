@@ -172,6 +172,19 @@ export async function fetchAllItems(cobaltCookie, sourceBookIds = null) {
 
     console.log(`[ITEMS] Fetched ${items.length} items from D&D Beyond`);
 
+    // IMPORTANT: Track ownership from ORIGINAL API response (before filtering)
+    // A book is "owned" if ANY of its sourceIds appear in the API response
+    const ownedSourceIds = new Set();
+    for (const item of items) {
+      const sources = item.sources || [];
+      for (const source of sources) {
+        if (source.sourceId) {
+          ownedSourceIds.add(source.sourceId);
+        }
+      }
+    }
+    console.log(`[ITEMS] Detected ownership for ${ownedSourceIds.size} unique source IDs from API response`);
+
     // Filter by source books if specified (BEFORE enhancement)
     if (sourceBookIds && sourceBookIds.length > 0) {
       items = filterBySourceBooks(items, sourceBookIds);
@@ -193,47 +206,22 @@ export async function fetchAllItems(cobaltCookie, sourceBookIds = null) {
       sourceStats[source] = (sourceStats[source] || 0) + 1;
     }
 
-    // Create ownership report
-    console.log('\n========================================');
-    console.log('ITEM IMPORT REPORT BY SOURCE BOOK');
-    console.log('========================================\n');
-
-    // Get all sources from the map
+    // Get all sources from D&D Beyond config
     const allSources = await getAllSources();
-    const sourceBookMap = new Map();
 
-    // Build a map of source names to their stats
+    // Build ownership map (sourceId -> owned status)
+    const ownershipBySourceId = new Map();
     for (const source of allSources) {
-      sourceBookMap.set(source.name, {
-        name: source.name,
-        itemCount: sourceStats[source.name] || 0,
-        owned: (sourceStats[source.name] || 0) > 0
-      });
+      ownershipBySourceId.set(source.id, ownedSourceIds.has(source.id));
     }
 
-    // Sort by item count (highest first), then alphabetically
-    const sortedSources = Array.from(sourceBookMap.values())
-      .sort((a, b) => {
-        if (b.itemCount !== a.itemCount) {
-          return b.itemCount - a.itemCount; // Sort by count descending
-        }
-        return a.name.localeCompare(b.name); // Then alphabetically
-      });
-
-    // Display report
-    for (const source of sortedSources) {
-      const ownership = source.owned ? '(Owned)' : '(Not Owned)';
-      const itemCount = source.itemCount.toString().padStart(4, ' ');
-      console.log(`${source.name.padEnd(50)} ${ownership.padEnd(12)} ${itemCount} Items`);
-    }
-
-    console.log('\n========================================');
-    console.log(`Total Sources: ${sortedSources.length}`);
-    console.log(`Owned Sources: ${sortedSources.filter(s => s.owned).length}`);
-    console.log(`Total Items: ${filteredItems.length}`);
-    console.log('========================================\n');
-
-    return filteredItems;
+    // Return both filtered items and ownership data for combined report
+    return {
+      items: filteredItems,
+      sourceStats,
+      ownershipBySourceId,
+      allSources
+    };
 
   } catch (error) {
     console.error('[ITEMS] Fetch failed:', error.message);
