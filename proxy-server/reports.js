@@ -34,6 +34,11 @@ export function generateCombinedReport(itemsData, spellsData) {
   const sourceReportMap = new Map();
 
   for (const source of itemsData.allSources) {
+    // Skip sources without valid names
+    if (!source.name || source.name.trim() === '') {
+      continue;
+    }
+
     const itemCount = itemsData.sourceStats[source.name] || 0;
     const spellCount = spellsData.sourceStats[source.name] || 0;
     const owned = combinedOwnership.get(source.id) || false;
@@ -69,11 +74,18 @@ export function generateCombinedReport(itemsData, spellsData) {
   }
 
   console.log('\n========================================');
-  console.log(`Total Sources: ${sortedSources.length}`);
+  console.log(`Total Sources: ${sortedSources.length} (${itemsData.allSources.length} in D&D Beyond config)`);
   console.log(`Owned Sources: ${sortedSources.filter(s => s.owned).length}`);
   console.log(`Total Items: ${itemsData.items.length}`);
   console.log(`Total Spells: ${spellsData.spells.length}`);
   console.log('========================================\n');
+
+  // Log info about filtered sources if any
+  const filteredCount = itemsData.allSources.length - sortedSources.length;
+  if (filteredCount > 0) {
+    console.log(`Note: ${filteredCount} sources were excluded from the report due to missing names in D&D Beyond's config.`);
+    console.log('');
+  }
 }
 
 export default {
