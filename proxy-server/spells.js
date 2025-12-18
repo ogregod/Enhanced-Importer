@@ -13,8 +13,9 @@
  */
 
 import fetch from 'node-fetch';
-import { DDB_URLS, CONSTANTS, CLASS_MAP, SPELL_SCHOOL_MAP, SOURCE_BOOK_MAP } from './config.js';
+import { DDB_URLS, CONSTANTS, CLASS_MAP, SPELL_SCHOOL_MAP } from './config.js';
 import { getAuthHeaders } from './auth.js';
+import { buildSourceMap, extractSourceName } from './sources.js';
 
 /**
  * Filter out Unearthed Arcana content (sourceId 39)
@@ -55,44 +56,26 @@ function extractComponents(spell) {
 
 /**
  * Extract ALL source book names from spell sources array
+ * Uses D&D Beyond's config API for accurate source book names
  * @param {object} spell - Spell object from D&D Beyond
+ * @param {Map<number, string>} sourceMap - Pre-built source map from D&D Beyond config
  * @returns {string} - Comma-separated source book names
  */
-function extractSourceBook(spell) {
+function extractSourceBook(spell, sourceMap) {
   const sources = spell.definition?.sources || spell.sources || [];
   const sourceNames = [];
-  const unmappedIds = [];
 
   if (sources.length === 0) return 'Unknown Source';
 
   // Extract ALL source books (not just the first one)
   sources.forEach(source => {
-    let sourceName = null;
-
-    // Try to get source book name from the sourceBook property
-    if (source.sourceBook) {
-      sourceName = source.sourceBook;
-    }
-    // Fall back to mapping sourceId to source book name
-    else if (source.sourceId && SOURCE_BOOK_MAP[source.sourceId]) {
-      sourceName = SOURCE_BOOK_MAP[source.sourceId];
-    }
-    // Log unmapped source IDs
-    else if (source.sourceId) {
-      unmappedIds.push(source.sourceId);
-    }
+    const sourceName = extractSourceName(source, sourceMap);
 
     // Add to list if we found a name and it's not already in the list
     if (sourceName && !sourceNames.includes(sourceName)) {
       sourceNames.push(sourceName);
     }
   });
-
-  // Log any unmapped source IDs for debugging
-  if (unmappedIds.length > 0) {
-    const spellName = spell.definition?.name || spell.name || 'Unknown Spell';
-    console.warn(`[SPELLS] Unmapped source IDs for "${spellName}":`, unmappedIds.join(', '));
-  }
 
   return sourceNames.length > 0 ? sourceNames.join(', ') : 'Unknown Source';
 }
@@ -101,9 +84,10 @@ function extractSourceBook(spell) {
  * Enhance spell object with additional metadata
  * @param {object} spell - Original spell object from D&D Beyond
  * @param {string} className - Name of the class this spell was fetched for
+ * @param {Map<number, string>} sourceMap - Pre-built source map from D&D Beyond config
  * @returns {object} - Enhanced spell object
  */
-function enhanceSpellData(spell, className) {
+function enhanceSpellData(spell, className, sourceMap) {
   const definition = spell.definition || spell;
 
   return {
@@ -137,7 +121,7 @@ function enhanceSpellData(spell, className) {
     duration: definition.duration || spell.duration,
 
     // Extract source book name
-    sourceBook: extractSourceBook(spell)
+    sourceBook: extractSourceBook(spell, sourceMap)
   };
 }
 
@@ -146,9 +130,10 @@ function enhanceSpellData(spell, className) {
  * @param {number} classId - D&D Beyond class ID
  * @param {string} className - Class name (e.g., "Wizard")
  * @param {string} cobaltCookie - User's D&D Beyond session cookie
+ * @param {Map<number, string>} sourceMap - Pre-built source map from D&D Beyond config
  * @returns {Promise<Array>} - Array of spell objects for this class
  */
-async function fetchSpellsByClass(classId, className, cobaltCookie) {
+async function fetchSpellsByClass(classId, className, cobaltCookie, sourceMap) {
   // Fetch at max level (20) to get all spells available to the class
   const url = DDB_URLS.spells(classId, CONSTANTS.MAX_CLASS_LEVEL);
 
@@ -181,7 +166,7 @@ async function fetchSpellsByClass(classId, className, cobaltCookie) {
     }
 
     console.log(`[SPELLS] ${className}: Fetched ${spells.length} spells`);
-    return spells.map(spell => enhanceSpellData(spell, className));
+    return spells.map(spell => enhanceSpellData(spell, className, sourceMap));
 
   } catch (error) {
     console.warn(`[SPELLS] ${className} fetch failed:`, error.message);
@@ -245,9 +230,14 @@ export async function fetchAllSpells(cobaltCookie, sourceBookIds = null) {
     : '';
   console.log(`[SPELLS] Fetching spells for ${CONSTANTS.SPELLCASTING_CLASSES.length} classes${filterMsg}...`);
 
+  // Build source map from D&D Beyond config (cached)
+  console.log('[SPELLS] Building source map from D&D Beyond config...');
+  const sourceMap = await buildSourceMap();
+  console.log(`[SPELLS] Source map built with ${sourceMap.size} sources`);
+
   // Fetch all classes in parallel
   const classPromises = CONSTANTS.SPELLCASTING_CLASSES.map(({ id, name }) =>
-    fetchSpellsByClass(id, name, cobaltCookie)
+    fetchSpellsByClass(id, name, cobaltCookie, sourceMap)
   );
 
   const classResults = await Promise.all(classPromises);

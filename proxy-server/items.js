@@ -8,48 +8,32 @@
  */
 
 import fetch from 'node-fetch';
-import { DDB_URLS, CONSTANTS, SOURCE_BOOK_MAP } from './config.js';
+import { DDB_URLS, CONSTANTS } from './config.js';
 import { getAuthHeaders } from './auth.js';
+import { buildSourceMap, extractSourceName } from './sources.js';
 
 /**
  * Extract ALL source book names from item sources array
+ * Uses D&D Beyond's config API for accurate source book names
  * @param {object} item - Item object from D&D Beyond
+ * @param {Map<number, string>} sourceMap - Pre-built source map from D&D Beyond config
  * @returns {string} - Comma-separated source book names
  */
-function extractSourceBook(item) {
+function extractSourceBook(item, sourceMap) {
   const sources = item.sources || [];
   const sourceNames = [];
-  const unmappedIds = [];
 
   if (sources.length === 0) return 'Unknown Source';
 
   // Extract ALL source books (not just the first one)
   sources.forEach(source => {
-    let sourceName = null;
-
-    // Try to get source book name from the sourceBook property
-    if (source.sourceBook) {
-      sourceName = source.sourceBook;
-    }
-    // Fall back to mapping sourceId to source book name
-    else if (source.sourceId && SOURCE_BOOK_MAP[source.sourceId]) {
-      sourceName = SOURCE_BOOK_MAP[source.sourceId];
-    }
-    // Log unmapped source IDs
-    else if (source.sourceId) {
-      unmappedIds.push(source.sourceId);
-    }
+    const sourceName = extractSourceName(source, sourceMap);
 
     // Add to list if we found a name and it's not already in the list
     if (sourceName && !sourceNames.includes(sourceName)) {
       sourceNames.push(sourceName);
     }
   });
-
-  // Log any unmapped source IDs for debugging
-  if (unmappedIds.length > 0) {
-    console.warn(`[ITEMS] Unmapped source IDs for "${item.name}":`, unmappedIds.join(', '));
-  }
 
   return sourceNames.length > 0 ? sourceNames.join(', ') : 'Unknown Source';
 }
@@ -78,15 +62,16 @@ function filterUnearthedArcana(items) {
 /**
  * Enhance item object with additional metadata
  * @param {object} item - Original item object from D&D Beyond
+ * @param {Map<number, string>} sourceMap - Pre-built source map from D&D Beyond config
  * @returns {object} - Enhanced item object
  */
-function enhanceItemData(item) {
+function enhanceItemData(item, sourceMap) {
   return {
     // Preserve all original data
     ...item,
 
     // Extract source book name to top level
-    sourceBook: extractSourceBook(item),
+    sourceBook: extractSourceBook(item, sourceMap),
 
     // Ensure id is present
     id: item.id,
@@ -155,6 +140,11 @@ export async function fetchAllItems(cobaltCookie, sourceBookIds = null) {
   console.log(`[ITEMS] Fetching items from D&D Beyond${filterMsg}...`);
 
   try {
+    // Build source map from D&D Beyond config (cached)
+    console.log('[ITEMS] Building source map from D&D Beyond config...');
+    const sourceMap = await buildSourceMap();
+    console.log(`[ITEMS] Source map built with ${sourceMap.size} sources`);
+
     // Get auth headers (with cached bearer token if available)
     const headers = await getAuthHeaders(cobaltCookie, true);
 
@@ -189,7 +179,7 @@ export async function fetchAllItems(cobaltCookie, sourceBookIds = null) {
     }
 
     // Enhance each item with source book information
-    const enhancedItems = items.map(item => enhanceItemData(item));
+    const enhancedItems = items.map(item => enhanceItemData(item, sourceMap));
 
     // Filter out Unearthed Arcana content
     const filteredItems = filterUnearthedArcana(enhancedItems);

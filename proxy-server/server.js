@@ -30,9 +30,10 @@ import compression from 'compression';
 // Import new modules
 import { Cache } from './cache.js';
 import { getBearerToken, validateCobaltCookie as validateCobalt, getCacheId } from './auth.js';
-import { DDB_URLS, CACHE_TTL, CONSTANTS, SOURCE_BOOK_MAP } from './config.js';
+import { DDB_URLS, CACHE_TTL, CONSTANTS } from './config.js';
 import { fetchAllSpells } from './spells.js';
 import { fetchAllItems } from './items.js';
+import { getAllSources } from './sources.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -201,16 +202,32 @@ app.get('/ping', (req, res) => {
 });
 
 /**
- * Get available source books
+ * Get available source books from D&D Beyond's config API
  */
-app.get('/api/source-books', (req, res) => {
-  // Convert SOURCE_BOOK_MAP to array format for frontend
-  const sourceBooks = Object.entries(SOURCE_BOOK_MAP).map(([id, name]) => ({
-    id: parseInt(id),
-    name: name.replace(/\s*\/\/.*$/, '').trim() // Remove comments
-  })).sort((a, b) => a.name.localeCompare(b.name));
+app.get('/api/source-books', async (req, res) => {
+  try {
+    // Fetch source books from D&D Beyond's config API (cached)
+    const sources = await getAllSources();
 
-  res.json({ sourceBooks });
+    // Filter and format for frontend
+    const sourceBooks = sources
+      .filter(source => source.id && source.name) // Only include valid sources
+      .map(source => ({
+        id: source.id,
+        name: source.name,
+        description: source.description || null
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    console.log(`[API] Returning ${sourceBooks.length} source books`);
+    res.json({ sourceBooks });
+  } catch (error) {
+    console.error('[API] Failed to fetch source books:', error.message);
+    res.status(500).json({
+      error: 'Failed to fetch source books',
+      message: error.message
+    });
+  }
 });
 
 /**
