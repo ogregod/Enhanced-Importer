@@ -85,17 +85,20 @@ export async function getAllSources() {
   }
 
   // Return simplified source objects
+  // Note: D&D Beyond's 'name' field is the abbreviation (PHB, DMG)
+  // and 'description' field is the full name (Player's Handbook)
   return config.sources.map(source => ({
     id: source.id,
-    name: source.name,
+    name: source.description || source.name, // Use full name (description) instead of abbreviation
     description: source.description || null,
+    abbreviation: source.name || null, // Keep abbreviation for reference
     sourceCategory: source.sourceCategory || null
   }));
 }
 
 /**
  * Build a sourceId -> name mapping from D&D Beyond's config
- * @returns {Promise<Map<number, string>>} - Map of sourceId to source name
+ * @returns {Promise<Map<number, string>>} - Map of sourceId to full source name
  */
 export async function buildSourceMap() {
   const config = await fetchDDBConfig();
@@ -104,8 +107,10 @@ export async function buildSourceMap() {
 
   if (config.sources && Array.isArray(config.sources)) {
     for (const source of config.sources) {
-      if (source.id && source.name) {
-        sourceMap.set(source.id, source.name);
+      if (source.id) {
+        // Use description (full name) if available, otherwise fall back to name (abbreviation)
+        const fullName = source.description || source.name || `Source ${source.id}`;
+        sourceMap.set(source.id, fullName);
       }
     }
   }
