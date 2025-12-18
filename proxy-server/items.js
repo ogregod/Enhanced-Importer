@@ -8,7 +8,7 @@
  */
 
 import fetch from 'node-fetch';
-import { DDB_URLS, CONSTANTS } from './config.js';
+import { DDB_URLS, CONSTANTS, RARITY_MAP } from './config.js';
 import { getAuthHeaders } from './auth.js';
 import { buildSourceMap, extractSourceName, getAllSources } from './sources.js';
 
@@ -66,12 +66,23 @@ function filterUnearthedArcana(items) {
  * @returns {object} - Enhanced item object
  */
 function enhanceItemData(item, sourceMap) {
+  // Get rarity ID from the item (handle both direct and nested formats)
+  const rarityId = item.rarity !== undefined ? item.rarity : (item.definition?.rarity);
+
+  // Map rarity ID to rarity name
+  // If rarityId is null/undefined, default to 0 (Mundane)
+  const rarityName = RARITY_MAP[rarityId !== null && rarityId !== undefined ? rarityId : 0] || 'Unknown';
+
   return {
     // Preserve all original data
     ...item,
 
     // Extract source book name to top level
     sourceBook: extractSourceBook(item, sourceMap),
+
+    // Add human-readable rarity name
+    // CRITICAL: Mundane (0) vs Common (1) distinction!
+    rarityName: rarityName,
 
     // Ensure id is present
     id: item.id,
