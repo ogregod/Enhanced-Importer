@@ -28,7 +28,7 @@ export async function convertDDBItemToFoundry(ddbItem, sources) {
       weight: ddbItem.weight || 0,
       price: ddbItem.cost || 0,
       attunement: ddbItem.attunementRequirements ? 1 : 0,
-      rarity: mapRarity(ddbItem.rarity),
+      rarity: mapRarity(ddbItem.rarityName || ddbItem.rarity),
       identified: true
     }
   };
@@ -327,20 +327,41 @@ function mapItemTypeToText(ddbType) {
 
 /**
  * Map D&D Beyond rarity to Foundry rarity
- * @param {string} ddbRarity - The D&D Beyond rarity
+ * @param {string|number} ddbRarity - The D&D Beyond rarity (text name or numeric ID)
  * @returns {string} Foundry rarity
  */
 function mapRarity(ddbRarity) {
-  const rarityMap = {
+  // Handle numeric IDs from D&D Beyond API
+  const numericRarityMap = {
+    0: 'common',      // Mundane -> treat as common in Foundry
+    1: 'common',
+    2: 'uncommon',
+    3: 'rare',
+    4: 'very rare',
+    5: 'legendary',
+    6: 'artifact',
+    7: 'varies'       // Varies -> treat as common in Foundry
+  };
+
+  // Handle text names from proxy server
+  const textRarityMap = {
+    'Mundane': 'common',
     'Common': 'common',
     'Uncommon': 'uncommon',
     'Rare': 'rare',
     'Very Rare': 'very rare',
     'Legendary': 'legendary',
-    'Artifact': 'artifact'
+    'Artifact': 'artifact',
+    'Varies': 'common'
   };
-  
-  return rarityMap[ddbRarity] || '';
+
+  // If it's a number, use numeric mapping
+  if (typeof ddbRarity === 'number') {
+    return numericRarityMap[ddbRarity] || 'common';
+  }
+
+  // If it's a string, use text mapping
+  return textRarityMap[ddbRarity] || 'common';
 }
 
 /**
