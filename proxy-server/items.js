@@ -86,7 +86,8 @@ function enhanceItemData(item, sourceMap) {
 
   // Map rarity ID to rarity name
   // If rarityId is null/undefined, default to 0 (Mundane)
-  const rarityName = RARITY_MAP[rarityId !== null && rarityId !== undefined ? rarityId : 0] || 'Unknown';
+  // If rarity ID is not in the map, default to 'Mundane' instead of 'Unknown'
+  const rarityName = RARITY_MAP[rarityId !== null && rarityId !== undefined ? rarityId : 0] || 'Mundane';
 
   return {
     // Preserve all original data
