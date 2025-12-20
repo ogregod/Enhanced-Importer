@@ -66,31 +66,27 @@ function filterUnearthedArcana(items) {
  * @returns {object} - Enhanced item object
  */
 function enhanceItemData(item, sourceMap) {
-  // Get rarity ID from the item (handle both direct and nested formats)
-  const rarityId = item.rarity !== undefined ? item.rarity : (item.definition?.rarity);
+  // Get rarity from the item (handle both direct and nested formats)
+  const rawRarity = item.rarity !== undefined ? item.rarity : (item.definition?.rarity);
 
-  // DEBUG: Log rarity mapping for first 5 items to diagnose issues
-  if (typeof enhanceItemData.debugCount === 'undefined') {
-    enhanceItemData.debugCount = 0;
-  }
-  if (enhanceItemData.debugCount < 5) {
-    console.log(`[ITEMS DEBUG] Item "${item.name}" full structure:`, {
-      rawRarity: item.rarity,
-      rarityType: typeof item.rarity,
-      definitionRarity: item.definition?.rarity,
-      rarityId,
-      mappedName: RARITY_MAP[rarityId !== null && rarityId !== undefined ? rarityId : 0],
-      itemKeys: Object.keys(item),
-      hasDefinition: !!item.definition,
-      definitionKeys: item.definition ? Object.keys(item.definition) : null
-    });
-    enhanceItemData.debugCount++;
-  }
+  // D&D Beyond now returns rarity as a STRING (e.g., 'Rare', 'Common')
+  // Previously it was a numeric ID (0-7)
+  // We need to handle both formats for backwards compatibility
+  let rarityName;
 
-  // Map rarity ID to rarity name
-  // If rarityId is null/undefined, default to 0 (Mundane)
-  // If rarity ID is not in the map, default to 'Mundane' instead of 'Unknown'
-  const rarityName = RARITY_MAP[rarityId !== null && rarityId !== undefined ? rarityId : 0] || 'Mundane';
+  if (typeof rawRarity === 'string') {
+    // Already a string - use it directly
+    rarityName = rawRarity;
+  } else if (typeof rawRarity === 'number') {
+    // Numeric ID - map it using RARITY_MAP
+    rarityName = RARITY_MAP[rawRarity] || 'Mundane';
+  } else if (rawRarity === null || rawRarity === undefined) {
+    // No rarity - default to Mundane
+    rarityName = 'Mundane';
+  } else {
+    // Unknown format - default to Mundane
+    rarityName = 'Mundane';
+  }
 
   return {
     // Preserve all original data
