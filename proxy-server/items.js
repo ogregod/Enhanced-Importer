@@ -69,17 +69,20 @@ function enhanceItemData(item, sourceMap) {
   // Get rarity ID from the item (handle both direct and nested formats)
   const rarityId = item.rarity !== undefined ? item.rarity : (item.definition?.rarity);
 
-  // DEBUG: Log rarity mapping for first 3 items
+  // DEBUG: Log rarity mapping for first 5 items to diagnose issues
   if (typeof enhanceItemData.debugCount === 'undefined') {
     enhanceItemData.debugCount = 0;
   }
-  if (enhanceItemData.debugCount < 3) {
-    console.log(`[ITEMS DEBUG] Item "${item.name}" rarity mapping:`, {
+  if (enhanceItemData.debugCount < 5) {
+    console.log(`[ITEMS DEBUG] Item "${item.name}" full structure:`, {
       rawRarity: item.rarity,
       rarityType: typeof item.rarity,
+      definitionRarity: item.definition?.rarity,
       rarityId,
       mappedName: RARITY_MAP[rarityId !== null && rarityId !== undefined ? rarityId : 0],
-      rarityMap: RARITY_MAP
+      itemKeys: Object.keys(item),
+      hasDefinition: !!item.definition,
+      definitionKeys: item.definition ? Object.keys(item.definition) : null
     });
     enhanceItemData.debugCount++;
   }
